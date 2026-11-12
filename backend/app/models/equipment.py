@@ -27,12 +27,25 @@ class EquipmentTypeModel(Base):
     name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
 
 
+class Sector(Base):
+    __tablename__ = "sectors"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[str] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    organization = relationship("Organization", backref="sectors")
+
+
 class Equipment(Base):
     __tablename__ = "equipment"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), nullable=False, index=True)
     type_id: Mapped[int] = mapped_column(ForeignKey("equipment_types.id"), nullable=False)
+    sector_id: Mapped[int] = mapped_column(ForeignKey("sectors.id"), nullable=True)
     asset_number: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     serial_number: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     brand: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -46,6 +59,7 @@ class Equipment(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     type = relationship("EquipmentTypeModel", backref="equipment")
+    sector = relationship("Sector", backref="equipment")
     organization = relationship("Organization", backref="equipment")
 
 

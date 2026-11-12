@@ -12,8 +12,18 @@ class EquipmentTypeResponse(BaseModel):
         from_attributes = True
 
 
+class SectorResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+
 class EquipmentBase(BaseModel):
     type_id: int
+    sector_id: Optional[int] = None
     asset_number: str = Field(..., min_length=1, max_length=100)
     serial_number: str = Field(..., min_length=1, max_length=100)
     brand: str = Field(..., min_length=1, max_length=100)
@@ -31,6 +41,7 @@ class EquipmentCreate(EquipmentBase):
 
 class EquipmentUpdate(BaseModel):
     type_id: Optional[int] = None
+    sector_id: Optional[int] = None
     asset_number: Optional[str] = Field(None, max_length=100)
     serial_number: Optional[str] = Field(None, max_length=100)
     brand: Optional[str] = Field(None, max_length=100)

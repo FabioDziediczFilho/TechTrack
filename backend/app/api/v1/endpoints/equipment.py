@@ -5,13 +5,14 @@ from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_db, get_current_organization, get_current_user_id
-from app.models import Equipment, EquipmentTypeModel, EquipmentHistory, User
+from app.models import Equipment, EquipmentTypeModel, EquipmentHistory, User, Sector
 from app.schemas.equipment import (
     EquipmentCreate,
     EquipmentResponse,
     EquipmentUpdate,
     EquipmentHistoryResponse,
     EquipmentTypeResponse,
+    SectorResponse,
 )
 
 router = APIRouter()
@@ -255,3 +256,33 @@ async def get_equipment_history(
     history = result.scalars().all()
 
     return history
+
+
+@router.get("/sectors", response_model=list[SectorResponse])
+async def list_sectors(
+    db: AsyncSession = Depends(get_db),
+    current_org_id: int = Depends(get_current_organization),
+):
+    result = await db.execute(
+        select(Sector).where(Sector.organization_id == current_org_id)
+    )
+    sectors = result.scalars().all()
+    return sectors
+
+
+@router.post("/sectors", response_model=SectorResponse, status_code=status.HTTP_201_CREATED)
+async def create_sector(
+    name: str,
+    description: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    current_org_id: int = Depends(get_current_organization),
+):
+    sector = Sector(
+        organization_id=current_org_id,
+        name=name,
+        description=description,
+    )
+    db.add(sector)
+    await db.commit()
+    await db.refresh(sector)
+    return sector
