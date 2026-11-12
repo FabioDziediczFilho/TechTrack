@@ -2,15 +2,17 @@ import React, { useState } from 'react'
 import {
   Box, Typography, Button, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Select, MenuItem, FormControl, InputLabel, Chip, Grid, Alert,
+  TextField, Select, MenuItem, FormControl, InputLabel, Chip, Grid, Alert, IconButton,
 } from '@mui/material'
-import { Add as AddIcon } from '@mui/icons-material'
+import { Add as AddIcon, Visibility as ViewIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { equipmentService } from '../services/equipment'
 import { Equipment, EquipmentType } from '../types'
 
 const EquipmentPage: React.FC = () => {
   const [open, setOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null)
   const [formData, setFormData] = useState({
     type_id: '',
     asset_number: '',
@@ -59,6 +61,16 @@ const EquipmentPage: React.FC = () => {
   const handleOpen = () => setOpen(true)
   const handleClose = () => setOpen(false)
 
+  const handleViewDetails = (item: Equipment) => {
+    setSelectedEquipment(item)
+    setDetailsOpen(true)
+  }
+
+  const handleDetailsClose = () => {
+    setDetailsOpen(false)
+    setSelectedEquipment(null)
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name as string]: value }))
@@ -75,6 +87,15 @@ const EquipmentPage: React.FC = () => {
       case 'inactive': return 'default'
       case 'maintenance': return 'warning'
       default: return 'default'
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'active': return 'Ativo'
+      case 'inactive': return 'Inativo'
+      case 'maintenance': return 'Em Manutenção'
+      default: return status
     }
   }
 
@@ -109,24 +130,35 @@ const EquipmentPage: React.FC = () => {
               <TableCell>Modelo</TableCell>
               <TableCell>Localização</TableCell>
               <TableCell>Status</TableCell>
+              <TableCell>Ações</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {equipment?.map((item) => (
-              <TableRow key={item.id}>
+              <TableRow
+                key={item.id}
+                hover
+                sx={{ cursor: 'pointer' }}
+                onClick={() => handleViewDetails(item)}
+              >
                 <TableCell>{item.asset_number}</TableCell>
                 <TableCell>{item.serial_number}</TableCell>
                 <TableCell>{item.brand}</TableCell>
                 <TableCell>{item.model}</TableCell>
                 <TableCell>{item.location || '-'}</TableCell>
                 <TableCell>
-                  <Chip label={item.status} color={getStatusColor(item.status) as any} size="small" />
+                  <Chip label={getStatusLabel(item.status)} color={getStatusColor(item.status) as any} size="small" />
+                </TableCell>
+                <TableCell>
+                  <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleViewDetails(item); }}>
+                    <ViewIcon fontSize="small" />
+                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
             {equipment?.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} align="center">
+                <TableCell colSpan={7} align="center">
                   Nenhum equipamento cadastrado
                 </TableCell>
               </TableRow>
@@ -135,6 +167,7 @@ const EquipmentPage: React.FC = () => {
         </Table>
       </TableContainer>
 
+      {/* Create Dialog */}
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
         <DialogTitle>Novo Equipamento</DialogTitle>
         <DialogContent>
@@ -256,6 +289,64 @@ const EquipmentPage: React.FC = () => {
           <Button onClick={handleSubmit} variant="contained" disabled={createMutation.isPending}>
             {createMutation.isPending ? 'Salvando...' : 'Salvar'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Details Dialog */}
+      <Dialog open={detailsOpen} onClose={handleDetailsClose} maxWidth="md" fullWidth>
+        <DialogTitle>Detalhes do Equipamento</DialogTitle>
+        <DialogContent>
+          {selectedEquipment && (
+            <Grid container spacing={2} sx={{ mt: 2 }}>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Número Patrimônio</Typography>
+                <Typography variant="body1">{selectedEquipment.asset_number}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Número de Série</Typography>
+                <Typography variant="body1">{selectedEquipment.serial_number}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Marca</Typography>
+                <Typography variant="body1">{selectedEquipment.brand}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Modelo</Typography>
+                <Typography variant="body1">{selectedEquipment.model}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Processador</Typography>
+                <Typography variant="body1">{selectedEquipment.processor || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Memória</Typography>
+                <Typography variant="body1">{selectedEquipment.memory || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Armazenamento</Typography>
+                <Typography variant="body1">{selectedEquipment.storage || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Localização</Typography>
+                <Typography variant="body1">{selectedEquipment.location || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Status</Typography>
+                <Chip label={getStatusLabel(selectedEquipment.status)} color={getStatusColor(selectedEquipment.status) as any} size="small" />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Data de Cadastro</Typography>
+                <Typography variant="body1">{new Date(selectedEquipment.created_at).toLocaleDateString('pt-BR')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Última Atualização</Typography>
+                <Typography variant="body1">{new Date(selectedEquipment.updated_at).toLocaleDateString('pt-BR')}</Typography>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDetailsClose}>Fechar</Button>
         </DialogActions>
       </Dialog>
     </Box>
