@@ -36,6 +36,12 @@ async def get_current_user(
     return payload
 
 
+async def get_current_user_id(
+    current_user: dict = Depends(get_current_user),
+) -> int:
+    return int(current_user["sub"])
+
+
 async def get_current_organization(
     current_user: dict = Depends(get_current_user),
 ) -> int:

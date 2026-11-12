@@ -4,16 +4,9 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-class EquipmentTypeBase(BaseModel):
-    name: str
-
-
-class EquipmentTypeCreate(EquipmentTypeBase):
-    pass
-
-
-class EquipmentTypeResponse(EquipmentTypeBase):
+class EquipmentTypeResponse(BaseModel):
     id: int
+    name: str
 
     class Config:
         from_attributes = True
@@ -54,7 +47,7 @@ class EquipmentResponse(EquipmentBase):
     organization_id: int
     created_at: datetime
     updated_at: datetime
-    type: EquipmentTypeResponse
+    type_id: int
 
     class Config:
         from_attributes = True

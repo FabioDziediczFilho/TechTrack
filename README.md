@@ -6,7 +6,7 @@ Sistema web multi-tenant para gestão de equipamentos, chamados técnicos e manu
 
 - **Backend**: Python FastAPI
 - **Frontend**: React + TypeScript + Vite
-- **Banco de Dados**: PostgreSQL
+- **Banco de Dados**: SQLite (desenvolvimento) / PostgreSQL (produção)
 - **Autenticação**: JWT Tokens
 - **Arquitetura**: Multi-tenant (isolamento de dados por organização)
 
@@ -53,7 +53,6 @@ TechTrack/
 
 - Python 3.11+
 - Node.js 18+
-- PostgreSQL 15+
 - Docker e Docker Compose (opcional)
 
 ## Como Rodar Localmente
@@ -87,7 +86,7 @@ docker-compose -f docker/docker-compose.yml up --build
 ### Backend (.env)
 
 ```env
-DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/techtrack
+DATABASE_URL=sqlite+aiosqlite:///./techtrack.db
 SECRET_KEY=your-secret-key-here
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
@@ -112,3 +111,10 @@ Após iniciar o backend, acesse:
 - [ ] Etapa 2: Backend (API de Equipamentos e Chamados)
 - [ ] Etapa 3: Frontend (Dashboard e Telas de Gerenciamento)
 - [ ] Etapa 4: Finalização (Testes, Docker, Deploy e Documentação)
+
+## Notas
+
+- Banco de dados configurado como SQLite para desenvolvimento local
+- Para produção, alterar `DATABASE_URL` para PostgreSQL
+- Autenticação JWT implementada e testada
+- Multi-tenancy configurado com isolamento por organization_id

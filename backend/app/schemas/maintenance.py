@@ -4,16 +4,9 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-class MaintenanceTypeBase(BaseModel):
-    name: str
-
-
-class MaintenanceTypeCreate(MaintenanceTypeBase):
-    pass
-
-
-class MaintenanceTypeResponse(MaintenanceTypeBase):
+class MaintenanceTypeResponse(BaseModel):
     id: int
+    name: str
 
     class Config:
         from_attributes = True
