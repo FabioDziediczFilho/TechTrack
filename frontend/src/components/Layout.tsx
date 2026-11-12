@@ -47,10 +47,9 @@ const Layout: React.FC = () => {
     navigate('/login')
   }
 
-  // Temporarily disable auth check for debugging
-  // if (!isAuthenticated) {
-  //   return null
-  // }
+  if (!isAuthenticated) {
+    return null
+  }
 
   const drawer = (
     <div>
