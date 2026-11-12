@@ -21,6 +21,11 @@ class SectorResponse(BaseModel):
         from_attributes = True
 
 
+class SectorCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=255)
+
+
 class EquipmentBase(BaseModel):
     type_id: int
     sector_id: Optional[int] = None

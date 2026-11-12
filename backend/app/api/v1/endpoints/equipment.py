@@ -13,6 +13,7 @@ from app.schemas.equipment import (
     EquipmentHistoryResponse,
     EquipmentTypeResponse,
     SectorResponse,
+    SectorCreate,
 )
 
 router = APIRouter()
@@ -272,15 +273,14 @@ async def list_sectors(
 
 @router.post("/sectors", response_model=SectorResponse, status_code=status.HTTP_201_CREATED)
 async def create_sector(
-    name: str,
-    description: Optional[str] = None,
+    sector_data: SectorCreate,
     db: AsyncSession = Depends(get_db),
     current_org_id: int = Depends(get_current_organization),
 ):
     sector = Sector(
         organization_id=current_org_id,
-        name=name,
-        description=description,
+        name=sector_data.name,
+        description=sector_data.description,
     )
     db.add(sector)
     await db.commit()
