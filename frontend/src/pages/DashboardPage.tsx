@@ -15,13 +15,26 @@ import {
   SupportAgent as TicketsIcon,
   Build as MaintenanceIcon,
 } from '@mui/icons-material'
+import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useQuery } from '@tanstack/react-query'
 import { dashboardService } from '../services/dashboard'
+
+const COLORS = ['#1976d2', '#dc004e', '#ffc107', '#4caf50', '#9c27b0']
 
 const DashboardPage: React.FC = () => {
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: dashboardService.getStats,
+  })
+
+  const { data: ticketsByPeriod } = useQuery({
+    queryKey: ['tickets-by-period'],
+    queryFn: () => dashboardService.getTicketsByPeriod(30),
+  })
+
+  const { data: equipmentByType } = useQuery({
+    queryKey: ['equipment-by-type'],
+    queryFn: dashboardService.getEquipmentByType,
   })
 
   if (isLoading) {
@@ -109,14 +122,52 @@ const DashboardPage: React.FC = () => {
         </Grid>
       </Grid>
 
-      <Paper sx={{ mt: 3, p: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Gráficos serão adicionados posteriormente
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Visualizações de dados estão temporariamente desabilitadas
-        </Typography>
-      </Paper>
+      <Grid container spacing={3} sx={{ mt: 3 }}>
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Chamados por Período (30 dias)
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={ticketsByPeriod || []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="count" stroke="#1976d2" name="Chamados" />
+              </LineChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Equipamentos por Tipo
+            </Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={equipmentByType || []}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ type_name, percent }) => `${type_name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="count"
+                >
+                  {(equipmentByType || []).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Grid>
+      </Grid>
     </Box>
   )
 }
