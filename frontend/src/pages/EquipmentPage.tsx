@@ -12,7 +12,12 @@ import { Equipment, EquipmentType } from '../types'
 const EquipmentPage: React.FC = () => {
   const [open, setOpen] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
+  const [sectorOpen, setSectorOpen] = useState(false)
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null)
+  const [sectorFormData, setSectorFormData] = useState({
+    name: '',
+    description: '',
+  })
   const [formData, setFormData] = useState({
     type_id: '',
     sector_id: '',
@@ -65,8 +70,29 @@ const EquipmentPage: React.FC = () => {
     },
   })
 
+  const createSectorMutation = useMutation({
+    mutationFn: equipmentService.createSector,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sectors'] })
+      setSectorOpen(false)
+      setSectorFormData({ name: '', description: '' })
+    },
+  })
+
   const handleOpen = () => setOpen(true)
   const handleClose = () => setOpen(false)
+  const handleSectorOpen = () => setSectorOpen(true)
+  const handleSectorClose = () => setSectorOpen(false)
+
+  const handleSectorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setSectorFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSectorSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    createSectorMutation.mutate(sectorFormData)
+  }
 
   const handleViewDetails = (item: Equipment) => {
     setSelectedEquipment(item)
@@ -122,9 +148,14 @@ const EquipmentPage: React.FC = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Equipamentos</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpen}>
-          Novo Equipamento
-        </Button>
+        <Box display="flex" gap={2}>
+          <Button variant="outlined" onClick={handleSectorOpen}>
+            Gerenciar Setores
+          </Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpen}>
+            Novo Equipamento
+          </Button>
+        </Box>
       </Box>
 
       <TableContainer component={Paper}>
@@ -378,6 +409,68 @@ const EquipmentPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleDetailsClose}>Fechar</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Sector Management Dialog */}
+      <Dialog open={sectorOpen} onClose={handleSectorClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Gerenciar Setores</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Setores existentes ({sectors?.length || 0}):
+            </Typography>
+            {sectors && sectors.length > 0 ? (
+              <Box sx={{ mb: 2 }}>
+                {sectors.map((sector) => (
+                  <Box key={sector.id} sx={{ p: 1, borderBottom: '1px solid #eee' }}>
+                    <Typography variant="body1">{sector.name}</Typography>
+                    {sector.description && (
+                      <Typography variant="body2" color="text.secondary" fontSize="small">
+                        {sector.description}
+                      </Typography>
+                    )}
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary">Nenhum setor cadastrado</Typography>
+            )}
+          </Box>
+          <Box component="form" onSubmit={handleSectorSubmit} sx={{ mt: 2 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Criar novo setor:
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  name="name"
+                  label="Nome do Setor"
+                  fullWidth
+                  value={sectorFormData.name}
+                  onChange={handleSectorChange}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  name="description"
+                  label="Descrição"
+                  fullWidth
+                  multiline
+                  rows={2}
+                  value={sectorFormData.description}
+                  onChange={handleSectorChange}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleSectorClose}>Fechar</Button>
+          <Button onClick={handleSectorSubmit} variant="contained" disabled={createSectorMutation.isPending}>
+            {createSectorMutation.isPending ? 'Criando...' : 'Criar Setor'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
