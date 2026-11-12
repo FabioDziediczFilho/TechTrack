@@ -1,17 +1,16 @@
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, or_
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_db, get_current_organization, get_current_user
-from app.models import Ticket, TicketComment, User
+from app.core.deps import get_current_organization, get_current_user, get_db
+from app.models import Equipment, Ticket, TicketComment, User
 from app.schemas.ticket import (
+    TicketCommentCreate,
+    TicketCommentResponse,
     TicketCreate,
     TicketResponse,
     TicketUpdate,
-    TicketCommentCreate,
-    TicketCommentResponse,
 )
 
 router = APIRouter()
@@ -21,10 +20,10 @@ router = APIRouter()
 async def list_tickets(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    status: Optional[str] = None,
-    priority: Optional[str] = None,
-    assigned_to: Optional[int] = None,
-    equipment_id: Optional[int] = None,
+    status: str | None = None,
+    priority: str | None = None,
+    assigned_to: int | None = None,
+    equipment_id: int | None = None,
     db: AsyncSession = Depends(get_db),
     current_org_id: int = Depends(get_current_organization),
 ):
@@ -36,10 +35,10 @@ async def list_tickets(
     if priority:
         query = query.where(Ticket.priority == priority)
 
-    if assigned_to:
+    if assigned_to is not None:
         query = query.where(Ticket.assigned_to == assigned_to)
 
-    if equipment_id:
+    if equipment_id is not None:
         query = query.where(Ticket.equipment_id == equipment_id)
 
     query = query.order_by(Ticket.created_at.desc()).offset(skip).limit(limit)
@@ -56,6 +55,19 @@ async def create_ticket(
     current_org_id: int = Depends(get_current_organization),
     current_user: dict = Depends(get_current_user),
 ):
+    if ticket_data.equipment_id is not None:
+        result = await db.execute(
+            select(Equipment.id).where(
+                Equipment.id == ticket_data.equipment_id,
+                Equipment.organization_id == current_org_id,
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Equipment not found",
+            )
+
     ticket = Ticket(
         organization_id=current_org_id,
         reported_by=int(current_user["sub"]),
@@ -113,6 +125,18 @@ async def update_ticket(
         )
 
     update_data = ticket_data.model_dump(exclude_unset=True)
+    if update_data.get("assigned_to") is not None:
+        result = await db.execute(
+            select(User.id).where(
+                User.id == update_data["assigned_to"],
+                User.organization_id == current_org_id,
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Assigned user not found",
+            )
 
     for field, new_value in update_data.items():
         setattr(ticket, field, new_value)

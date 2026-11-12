@@ -14,25 +14,34 @@ Sistema web multi-tenant para gestão de equipamentos, chamados técnicos e manu
 
 1. **Inventário de Equipamentos**
    - Cadastro de computadores, notebooks, impressoras e servidores
-   - Número de patrimônio e número de série
-   - Especificações técnicas (marca, modelo, processador, memória, armazenamento)
-   - Localização física
+   - Número de patrimônio, marca e modelo opcionais; tipo permanece obrigatório
+   - Campo de observação no lugar de localização e sem coleta de número de série
+   - Edição de equipamentos e status pela tela de inventário
+   - Exclusão de setor preservando os equipamentos e removendo apenas o vínculo com o setor
+   - Especificações técnicas (processador, memória e armazenamento)
    - Histórico de alterações
 
-2. **Central de Chamados**
+2. **Departamentos**
+   - Cadastro, edição e exclusão de departamentos
+   - Equipamentos agrupados por setor, incluindo equipamentos sem setor
+   - Detalhes completos dos equipamentos acessíveis pela listagem
+   - Filtros por setor, tipo de máquina e status
+
+3. **Central de Chamados (temporariamente desativada)**
    - Abertura de chamados técnicos por usuários
    - Atribuição a técnico responsável
    - Prioridade: baixa, média, alta, crítica
    - Status: aberto, em andamento, aguardando, concluído
    - Histórico de atendimento e solução
 
-3. **Controle de Manutenção**
+4. **Controle de Manutenção**
    - Registro de manutenções preventivas e corretivas
+   - Edição e exclusão dos registros de manutenção
    - Histórico de problemas por equipamento
    - Registro de peças substituídas
    - Alertas de manutenção pendente
 
-4. **Dashboard Administrativo**
+5. **Dashboard Administrativo**
    - Total de equipamentos cadastrados
    - Chamados abertos e concluídos
    - Equipamentos com problemas
@@ -62,8 +71,9 @@ TechTrack/
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # No Windows: venv\Scripts\activate
+venv\Scripts\activate  # Windows
 pip install -r requirements.txt
+alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -77,9 +87,21 @@ npm run dev
 
 ### Com Docker Compose
 
-```bash
-docker-compose -f docker/docker-compose.yml up --build
+Defina uma chave secreta e uma senha PostgreSQL URL-safe no ambiente antes de iniciar. No PowerShell, por exemplo:
+
+```powershell
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$bytes = New-Object byte[] 32
+$rng.GetBytes($bytes)
+$env:SECRET_KEY = [BitConverter]::ToString($bytes).Replace("-", "").ToLowerInvariant()
+$bytes = New-Object byte[] 24
+$rng.GetBytes($bytes)
+$env:POSTGRES_PASSWORD = [BitConverter]::ToString($bytes).Replace("-", "").ToLowerInvariant()
+$rng.Dispose()
+docker compose -f docker/docker-compose.yml up --build
 ```
+
+O serviço do backend executa `alembic upgrade head` antes de iniciar a API. Em deploys com múltiplas réplicas, execute as migrações como etapa única de implantação, não simultaneamente em cada réplica.
 
 ## Variáveis de Ambiente
 
@@ -87,11 +109,15 @@ docker-compose -f docker/docker-compose.yml up --build
 
 ```env
 DATABASE_URL=sqlite+aiosqlite:///./techtrack.db
-SECRET_KEY=your-secret-key-here
+SECRET_KEY=replace-with-a-random-32-byte-hex-key
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
+ENVIRONMENT=development
+CORS_ORIGINS=["http://localhost:5173","http://localhost:5174","http://localhost:3000"]
 ```
+
+Em produção, defina `ENVIRONMENT=production`, use uma `SECRET_KEY` aleatória própria e configure `CORS_ORIGINS` com as origens reais do frontend. A chave de desenvolvimento não é aceita nesse modo.
 
 ### Frontend (.env)
 
@@ -118,3 +144,6 @@ Após iniciar o backend, acesse:
 - Para produção, alterar `DATABASE_URL` para PostgreSQL
 - Autenticação JWT implementada e testada
 - Multi-tenancy configurado com isolamento por organization_id
+- Rode `alembic upgrade head` no diretório `backend` antes de iniciar a API em um banco local novo ou após uma atualização de schema.
+- Rode os testes do backend com `python -m pytest` no diretório `backend`.
+- As migrações criam os tipos básicos de equipamento e manutenção usados nos formulários.

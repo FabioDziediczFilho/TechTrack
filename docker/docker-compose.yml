@@ -6,7 +6,7 @@ services:
     container_name: techtrack-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a URL-safe POSTGRES_PASSWORD in the environment}
       POSTGRES_DB: techtrack
     ports:
       - "5432:5432"
@@ -24,8 +24,10 @@ services:
       dockerfile: Dockerfile
     container_name: techtrack-backend
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/techtrack
-      SECRET_KEY: dev-secret-key-change-in-production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-techtrack}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in the environment}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost:5173"]}'
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
       REFRESH_TOKEN_EXPIRE_DAYS: 7
@@ -36,7 +38,7 @@ services:
         condition: service_healthy
     volumes:
       - ../backend:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
   frontend:
     build:
@@ -48,7 +50,7 @@ services:
     volumes:
       - ../frontend:/app
       - /app/node_modules
-    command: npm run dev
+    command: npm run dev -- --host 0.0.0.0
 
 volumes:
   postgres-data:

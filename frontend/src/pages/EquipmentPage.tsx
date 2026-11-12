@@ -2,33 +2,33 @@ import React, { useState } from 'react'
 import {
   Box, Typography, Button, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Select, MenuItem, FormControl, InputLabel, Chip, Grid, Alert, IconButton,
+  TextField, Select, MenuItem, FormControl, InputLabel, Chip, Grid, Alert, IconButton, SelectChangeEvent,
 } from '@mui/material'
-import { Add as AddIcon, Visibility as ViewIcon } from '@mui/icons-material'
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Visibility as ViewIcon,
+} from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { equipmentService } from '../services/equipment'
-import { Equipment, EquipmentType } from '../types'
+import { Equipment, EquipmentCreateInput } from '../types'
 
 const EquipmentPage: React.FC = () => {
   const [open, setOpen] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const [sectorOpen, setSectorOpen] = useState(false)
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null)
-  const [sectorFormData, setSectorFormData] = useState({
-    name: '',
-    description: '',
-  })
+  const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null)
   const [formData, setFormData] = useState({
-    type_id: '',
-    sector_id: '',
+    type_id: '' as string,
+    sector_id: '' as string,
     asset_number: '',
-    serial_number: '',
     brand: '',
     model: '',
     processor: '',
     memory: '',
     storage: '',
-    location: '',
+    observation: '',
     status: 'active',
   })
 
@@ -36,7 +36,7 @@ const EquipmentPage: React.FC = () => {
 
   const { data: equipment, isLoading, error } = useQuery({
     queryKey: ['equipment'],
-    queryFn: equipmentService.list,
+    queryFn: () => equipmentService.list(),
   })
 
   const { data: types } = useQuery({
@@ -58,40 +58,61 @@ const EquipmentPage: React.FC = () => {
         type_id: '',
         sector_id: '',
         asset_number: '',
-        serial_number: '',
         brand: '',
         model: '',
         processor: '',
         memory: '',
         storage: '',
-        location: '',
+        observation: '',
         status: 'active',
       })
+      setEditingEquipment(null)
     },
   })
 
-  const createSectorMutation = useMutation({
-    mutationFn: equipmentService.createSector,
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: EquipmentCreateInput }) =>
+      equipmentService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sectors'] })
-      setSectorOpen(false)
-      setSectorFormData({ name: '', description: '' })
+      queryClient.invalidateQueries({ queryKey: ['equipment'] })
+      setOpen(false)
+      setEditingEquipment(null)
     },
   })
 
-  const handleOpen = () => setOpen(true)
-  const handleClose = () => setOpen(false)
-  const handleSectorOpen = () => setSectorOpen(true)
-  const handleSectorClose = () => setSectorOpen(false)
+  const deleteMutation = useMutation({
+    mutationFn: equipmentService.delete,
+    onSuccess: (_, deletedId) => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] })
+      queryClient.invalidateQueries({ queryKey: ['maintenance'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['equipment-by-type'] })
+      if (selectedEquipment?.id === deletedId) {
+        setSelectedEquipment(null)
+        setDetailsOpen(false)
+      }
+    },
+  })
 
-  const handleSectorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setSectorFormData((prev) => ({ ...prev, [name]: value }))
+  const handleOpen = () => {
+    setEditingEquipment(null)
+    setFormData({
+      type_id: '',
+      sector_id: '',
+      asset_number: '',
+      brand: '',
+      model: '',
+      processor: '',
+      memory: '',
+      storage: '',
+      observation: '',
+      status: 'active',
+    })
+    setOpen(true)
   }
-
-  const handleSectorSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    createSectorMutation.mutate(sectorFormData)
+  const handleClose = () => {
+    setOpen(false)
+    setEditingEquipment(null)
   }
 
   const handleViewDetails = (item: Equipment) => {
@@ -104,14 +125,65 @@ const EquipmentPage: React.FC = () => {
     setSelectedEquipment(null)
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+  const handleEdit = (item: Equipment) => {
+    setEditingEquipment(item)
+    setFormData({
+      type_id: String(item.type_id),
+      sector_id: item.sector_id === null ? '' : String(item.sector_id),
+      asset_number: item.asset_number ?? '',
+      brand: item.brand ?? '',
+      model: item.model ?? '',
+      processor: item.processor ?? '',
+      memory: item.memory ?? '',
+      storage: item.storage ?? '',
+      observation: item.observation ?? '',
+      status: item.status,
+    })
+    setDetailsOpen(false)
+    setOpen(true)
+  }
+
+  const handleDelete = (item: Equipment) => {
+    const equipmentName = item.asset_number || `#${item.id}`
+    const confirmed = window.confirm(
+      `Excluir o equipamento ${equipmentName}?\n\n` +
+        'O histórico de alterações, manutenções e alertas de manutenção vinculados serão excluídos. ' +
+        'Os chamados serão mantidos, mas ficarão sem vínculo com este equipamento.',
+    )
+    if (confirmed) {
+      deleteMutation.mutate(item.id)
+    }
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name as string]: value }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    createMutation.mutate(formData)
+    const formDataToSubmit: EquipmentCreateInput = {
+      ...formData,
+      type_id: Number(formData.type_id),
+      sector_id: formData.sector_id ? Number(formData.sector_id) : null,
+      asset_number: formData.asset_number.trim() || null,
+      brand: formData.brand.trim() || null,
+      model: formData.model.trim() || null,
+      processor: formData.processor || null,
+      memory: formData.memory || null,
+      storage: formData.storage || null,
+      observation: formData.observation.trim() || null,
+    }
+    if (editingEquipment) {
+      updateMutation.mutate({ id: editingEquipment.id, data: formDataToSubmit })
+    } else {
+      createMutation.mutate(formDataToSubmit)
+    }
+  }
+
+  const handleSelectChange = (e: SelectChangeEvent<string>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const getStatusColor = (status: string) => {
@@ -148,26 +220,25 @@ const EquipmentPage: React.FC = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Equipamentos</Typography>
-        <Box display="flex" gap={2}>
-          <Button variant="outlined" onClick={handleSectorOpen}>
-            Gerenciar Setores
-          </Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpen}>
-            Novo Equipamento
-          </Button>
-        </Box>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpen}>
+          Novo Equipamento
+        </Button>
       </Box>
 
       <TableContainer component={Paper}>
+        {deleteMutation.isError && (
+          <Alert severity="error" sx={{ m: 2 }}>
+            Erro ao excluir equipamento: {deleteMutation.error.message}
+          </Alert>
+        )}
         <Table>
           <TableHead>
             <TableRow>
               <TableCell>Número Patrimônio</TableCell>
-              <TableCell>Número de Série</TableCell>
               <TableCell>Marca</TableCell>
               <TableCell>Modelo</TableCell>
               <TableCell>Setor</TableCell>
-              <TableCell>Localização</TableCell>
+              <TableCell>Observação</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Ações</TableCell>
             </TableRow>
@@ -180,12 +251,11 @@ const EquipmentPage: React.FC = () => {
                 sx={{ cursor: 'pointer' }}
                 onClick={() => handleViewDetails(item)}
               >
-                <TableCell>{item.asset_number}</TableCell>
-                <TableCell>{item.serial_number}</TableCell>
-                <TableCell>{item.brand}</TableCell>
-                <TableCell>{item.model}</TableCell>
+                <TableCell>{item.asset_number || '-'}</TableCell>
+                <TableCell>{item.brand || '-'}</TableCell>
+                <TableCell>{item.model || '-'}</TableCell>
                 <TableCell>{sectors?.find(s => s.id === item.sector_id)?.name || '-'}</TableCell>
-                <TableCell>{item.location || '-'}</TableCell>
+                <TableCell>{item.observation || '-'}</TableCell>
                 <TableCell>
                   <Chip label={getStatusLabel(item.status)} color={getStatusColor(item.status) as any} size="small" />
                 </TableCell>
@@ -193,12 +263,28 @@ const EquipmentPage: React.FC = () => {
                   <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleViewDetails(item); }}>
                     <ViewIcon fontSize="small" />
                   </IconButton>
+                  <IconButton
+                    size="small"
+                    aria-label={`Editar equipamento ${item.asset_number || item.id}`}
+                    onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    aria-label={`Excluir equipamento ${item.asset_number || item.id}`}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(item); }}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
             {equipment?.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} align="center">
+                <TableCell colSpan={7} align="center">
                   Nenhum equipamento cadastrado
                 </TableCell>
               </TableRow>
@@ -209,9 +295,15 @@ const EquipmentPage: React.FC = () => {
 
       {/* Create Dialog */}
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogTitle>Novo Equipamento</DialogTitle>
+        <DialogTitle>{editingEquipment ? 'Editar Equipamento' : 'Novo Equipamento'}</DialogTitle>
         <DialogContent>
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+          <Box component="form" id="equipment-form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+            {(createMutation.isError || updateMutation.isError) && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                Erro ao {editingEquipment ? 'atualizar' : 'criar'} equipamento:{' '}
+                {(editingEquipment ? updateMutation.error : createMutation.error)?.message}
+              </Alert>
+            )}
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
@@ -219,8 +311,9 @@ const EquipmentPage: React.FC = () => {
                   <Select
                     name="type_id"
                     value={formData.type_id}
-                    onChange={handleChange}
+                    onChange={handleSelectChange}
                     label="Tipo"
+                    required
                   >
                     {types?.map((type) => (
                       <MenuItem key={type.id} value={type.id}>
@@ -236,7 +329,7 @@ const EquipmentPage: React.FC = () => {
                   <Select
                     name="sector_id"
                     value={formData.sector_id}
-                    onChange={handleChange}
+                    onChange={handleSelectChange}
                     label="Setor"
                   >
                     <MenuItem value="">Nenhum</MenuItem>
@@ -255,17 +348,6 @@ const EquipmentPage: React.FC = () => {
                   fullWidth
                   value={formData.asset_number}
                   onChange={handleChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  name="serial_number"
-                  label="Número de Série"
-                  fullWidth
-                  value={formData.serial_number}
-                  onChange={handleChange}
-                  required
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -275,7 +357,6 @@ const EquipmentPage: React.FC = () => {
                   fullWidth
                   value={formData.brand}
                   onChange={handleChange}
-                  required
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -285,7 +366,6 @@ const EquipmentPage: React.FC = () => {
                   fullWidth
                   value={formData.model}
                   onChange={handleChange}
-                  required
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -317,10 +397,12 @@ const EquipmentPage: React.FC = () => {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  name="location"
-                  label="Localização"
+                  name="observation"
+                  label="Observação"
                   fullWidth
-                  value={formData.location}
+                  multiline
+                  rows={3}
+                  value={formData.observation}
                   onChange={handleChange}
                 />
               </Grid>
@@ -330,7 +412,7 @@ const EquipmentPage: React.FC = () => {
                   <Select
                     name="status"
                     value={formData.status}
-                    onChange={handleChange}
+                    onChange={handleSelectChange}
                     label="Status"
                   >
                     <MenuItem value="active">Ativo</MenuItem>
@@ -344,8 +426,13 @@ const EquipmentPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancelar</Button>
-          <Button onClick={handleSubmit} variant="contained" disabled={createMutation.isPending}>
-            {createMutation.isPending ? 'Salvando...' : 'Salvar'}
+          <Button
+            type="submit"
+            form="equipment-form"
+            variant="contained"
+            disabled={createMutation.isPending || updateMutation.isPending}
+          >
+            {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -358,19 +445,15 @@ const EquipmentPage: React.FC = () => {
             <Grid container spacing={2} sx={{ mt: 2 }}>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Número Patrimônio</Typography>
-                <Typography variant="body1">{selectedEquipment.asset_number}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2" color="text.secondary">Número de Série</Typography>
-                <Typography variant="body1">{selectedEquipment.serial_number}</Typography>
+                <Typography variant="body1">{selectedEquipment.asset_number || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Marca</Typography>
-                <Typography variant="body1">{selectedEquipment.brand}</Typography>
+                <Typography variant="body1">{selectedEquipment.brand || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Modelo</Typography>
-                <Typography variant="body1">{selectedEquipment.model}</Typography>
+                <Typography variant="body1">{selectedEquipment.model || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Setor</Typography>
@@ -389,8 +472,8 @@ const EquipmentPage: React.FC = () => {
                 <Typography variant="body1">{selectedEquipment.storage || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2" color="text.secondary">Localização</Typography>
-                <Typography variant="body1">{selectedEquipment.location || '-'}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">Observação</Typography>
+                <Typography variant="body1">{selectedEquipment.observation || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Status</Typography>
@@ -408,69 +491,21 @@ const EquipmentPage: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDetailsClose}>Fechar</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Sector Management Dialog */}
-      <Dialog open={sectorOpen} onClose={handleSectorClose} maxWidth="sm" fullWidth>
-        <DialogTitle>Gerenciar Setores</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Setores existentes ({sectors?.length || 0}):
-            </Typography>
-            {sectors && sectors.length > 0 ? (
-              <Box sx={{ mb: 2 }}>
-                {sectors.map((sector) => (
-                  <Box key={sector.id} sx={{ p: 1, borderBottom: '1px solid #eee' }}>
-                    <Typography variant="body1">{sector.name}</Typography>
-                    {sector.description && (
-                      <Typography variant="body2" color="text.secondary" fontSize="small">
-                        {sector.description}
-                      </Typography>
-                    )}
-                  </Box>
-                ))}
-              </Box>
-            ) : (
-              <Typography variant="body2" color="text.secondary">Nenhum setor cadastrado</Typography>
-            )}
-          </Box>
-          <Box component="form" onSubmit={handleSectorSubmit} sx={{ mt: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Criar novo setor:
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  name="name"
-                  label="Nome do Setor"
-                  fullWidth
-                  value={sectorFormData.name}
-                  onChange={handleSectorChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  name="description"
-                  label="Descrição"
-                  fullWidth
-                  multiline
-                  rows={2}
-                  value={sectorFormData.description}
-                  onChange={handleSectorChange}
-                />
-              </Grid>
-            </Grid>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleSectorClose}>Fechar</Button>
-          <Button onClick={handleSectorSubmit} variant="contained" disabled={createSectorMutation.isPending}>
-            {createSectorMutation.isPending ? 'Criando...' : 'Criar Setor'}
+          <Button
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={() => selectedEquipment && handleDelete(selectedEquipment)}
+            disabled={deleteMutation.isPending}
+          >
+            Excluir equipamento
           </Button>
+          <Button
+            onClick={() => selectedEquipment && handleEdit(selectedEquipment)}
+            startIcon={<EditIcon />}
+          >
+            Editar
+          </Button>
+          <Button onClick={handleDetailsClose}>Fechar</Button>
         </DialogActions>
       </Dialog>
     </Box>

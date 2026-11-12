@@ -1,7 +1,7 @@
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token

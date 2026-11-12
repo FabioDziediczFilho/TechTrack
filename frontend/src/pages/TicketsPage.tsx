@@ -2,12 +2,13 @@ import React, { useState } from 'react'
 import {
   Box, Typography, Button, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Select, MenuItem, FormControl, InputLabel, Chip, Grid, Alert,
+  TextField, Select, MenuItem, FormControl, InputLabel, Chip, Grid, Alert, SelectChangeEvent,
 } from '@mui/material'
 import { Add as AddIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ticketService } from '../services/tickets'
-import { Ticket } from '../types'
+import { equipmentService } from '../services/equipment'
+import { TicketCreateInput } from '../types'
 
 const TicketsPage: React.FC = () => {
   const [open, setOpen] = useState(false)
@@ -22,7 +23,12 @@ const TicketsPage: React.FC = () => {
 
   const { data: tickets, isLoading, error } = useQuery({
     queryKey: ['tickets'],
-    queryFn: ticketService.list,
+    queryFn: () => ticketService.list(),
+  })
+
+  const { data: equipment } = useQuery({
+    queryKey: ['equipment'],
+    queryFn: () => equipmentService.list(),
   })
 
   const createMutation = useMutation({
@@ -37,14 +43,24 @@ const TicketsPage: React.FC = () => {
   const handleOpen = () => setOpen(true)
   const handleClose = () => setOpen(false)
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name as string]: value }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSelectChange = (e: SelectChangeEvent<string>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    createMutation.mutate(formData)
+    const formDataToSubmit: TicketCreateInput = {
+      ...formData,
+      description: formData.description || null,
+      equipment_id: formData.equipment_id ? Number(formData.equipment_id) : null,
+    }
+    createMutation.mutate(formDataToSubmit)
   }
 
   const getPriorityColor = (priority: string) => {
@@ -123,7 +139,12 @@ const TicketsPage: React.FC = () => {
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
         <DialogTitle>Novo Chamado</DialogTitle>
         <DialogContent>
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+          <Box component="form" id="ticket-form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+            {createMutation.isError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                Erro ao criar chamado: {createMutation.error.message}
+              </Alert>
+            )}
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <TextField
@@ -152,7 +173,7 @@ const TicketsPage: React.FC = () => {
                   <Select
                     name="priority"
                     value={formData.priority}
-                    onChange={handleChange}
+                    onChange={handleSelectChange}
                     label="Prioridade"
                   >
                     <MenuItem value="low">Baixa</MenuItem>
@@ -162,12 +183,30 @@ const TicketsPage: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Equipamento (opcional)</InputLabel>
+                  <Select
+                    name="equipment_id"
+                    value={formData.equipment_id}
+                    onChange={handleSelectChange}
+                    label="Equipamento (opcional)"
+                  >
+                    <MenuItem value="">Nenhum</MenuItem>
+                    {equipment?.map((item) => (
+                      <MenuItem key={item.id} value={item.id.toString()}>
+                        {item.asset_number || 'Sem patrimônio'} — {[item.brand, item.model].filter(Boolean).join(' ') || 'Sem marca/modelo'}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
             </Grid>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancelar</Button>
-          <Button onClick={handleSubmit} variant="contained" disabled={createMutation.isPending}>
+          <Button type="submit" form="ticket-form" variant="contained" disabled={createMutation.isPending}>
             {createMutation.isPending ? 'Salvando...' : 'Salvar'}
           </Button>
         </DialogActions>

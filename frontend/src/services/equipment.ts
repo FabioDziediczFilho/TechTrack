@@ -1,5 +1,11 @@
 import api from './api'
-import { Equipment, EquipmentType, Sector } from '../types'
+import {
+  Equipment,
+  EquipmentCreateInput,
+  EquipmentType,
+  Sector,
+  SectorInput,
+} from '../types'
 
 export const equipmentService = {
   getTypes: async () => {
@@ -17,17 +23,32 @@ export const equipmentService = {
     return response.data
   },
 
-  createSector: async (name: string, description?: string) => {
-    const response = await api.post<Sector>('/api/v1/equipment/sectors', { name, description })
+  createSector: async (sector: SectorInput) => {
+    const response = await api.post<Sector>('/api/v1/equipment/sectors', sector)
     return response.data
   },
 
-  list: async (params?: { type_id?: number; status?: string; search?: string }) => {
+  updateSector: async (id: number, sector: Partial<SectorInput>) => {
+    const response = await api.put<Sector>(`/api/v1/equipment/sectors/${id}`, sector)
+    return response.data
+  },
+
+  deleteSector: async (id: number) => {
+    await api.delete(`/api/v1/equipment/sectors/${id}`)
+  },
+
+  list: async (params?: {
+    type_id?: number
+    status?: string
+    search?: string
+    skip?: number
+    limit?: number
+  }) => {
     const response = await api.get<Equipment[]>('/api/v1/equipment/', { params })
     return response.data
   },
 
-  create: async (data: Partial<Equipment>) => {
+  create: async (data: EquipmentCreateInput) => {
     const response = await api.post<Equipment>('/api/v1/equipment/', data)
     return response.data
   },

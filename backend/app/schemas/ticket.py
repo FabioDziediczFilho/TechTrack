@@ -1,14 +1,13 @@
 from datetime import datetime
-from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TicketBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
+    description: str | None = None
     priority: str = "medium"
-    equipment_id: Optional[int] = None
+    equipment_id: int | None = None
 
 
 class TicketCreate(TicketBase):
@@ -16,25 +15,24 @@ class TicketCreate(TicketBase):
 
 
 class TicketUpdate(BaseModel):
-    title: Optional[str] = Field(None, max_length=255)
-    description: Optional[str] = None
-    priority: Optional[str] = None
-    status: Optional[str] = None
-    assigned_to: Optional[int] = None
+    title: str | None = Field(None, max_length=255)
+    description: str | None = None
+    priority: str | None = None
+    status: str | None = None
+    assigned_to: int | None = None
 
 
 class TicketResponse(TicketBase):
     id: int
     organization_id: int
     reported_by: int
-    assigned_to: Optional[int]
+    assigned_to: int | None
     status: str
     created_at: datetime
     updated_at: datetime
-    closed_at: Optional[datetime]
+    closed_at: datetime | None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TicketCommentBase(BaseModel):
@@ -51,5 +49,4 @@ class TicketCommentResponse(TicketCommentBase):
     user_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

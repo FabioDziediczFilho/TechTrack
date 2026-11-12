@@ -1,19 +1,18 @@
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_db, get_current_organization, get_current_user
-from app.models import Maintenance, MaintenanceAlert, MaintenanceTypeModel
+from app.core.deps import get_current_organization, get_current_user_id, get_db
+from app.models import Equipment, Maintenance, MaintenanceAlert, MaintenanceTypeModel
 from app.schemas.maintenance import (
-    MaintenanceCreate,
-    MaintenanceResponse,
-    MaintenanceUpdate,
     MaintenanceAlertCreate,
     MaintenanceAlertResponse,
     MaintenanceAlertUpdate,
+    MaintenanceCreate,
+    MaintenanceResponse,
     MaintenanceTypeResponse,
+    MaintenanceUpdate,
 )
 
 router = APIRouter()
@@ -53,13 +52,13 @@ async def list_maintenance_types(db: AsyncSession = Depends(get_db)):
 async def list_maintenance(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    equipment_id: Optional[int] = None,
+    equipment_id: int | None = None,
     db: AsyncSession = Depends(get_db),
     current_org_id: int = Depends(get_current_organization),
 ):
     query = select(Maintenance).where(Maintenance.organization_id == current_org_id)
 
-    if equipment_id:
+    if equipment_id is not None:
         query = query.where(Maintenance.equipment_id == equipment_id)
 
     query = query.order_by(Maintenance.performed_at.desc()).offset(skip).limit(limit)
@@ -74,10 +73,35 @@ async def create_maintenance(
     maintenance_data: MaintenanceCreate,
     db: AsyncSession = Depends(get_db),
     current_org_id: int = Depends(get_current_organization),
+    current_user_id: int = Depends(get_current_user_id),
 ):
+    result = await db.execute(
+        select(Equipment.id).where(
+            Equipment.id == maintenance_data.equipment_id,
+            Equipment.organization_id == current_org_id,
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Equipment not found",
+        )
+
+    result = await db.execute(
+        select(MaintenanceTypeModel.id).where(
+            MaintenanceTypeModel.id == maintenance_data.maintenance_type_id
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Maintenance type not found",
+        )
+
     maintenance = Maintenance(
         organization_id=current_org_id,
         **maintenance_data.model_dump(),
+        performed_by=current_user_id,
     )
     db.add(maintenance)
     await db.commit()
@@ -132,6 +156,38 @@ async def update_maintenance(
 
     update_data = maintenance_data.model_dump(exclude_unset=True)
 
+    for required_field in ("equipment_id", "maintenance_type_id"):
+        if required_field in update_data and update_data[required_field] is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"{required_field} cannot be null",
+            )
+
+    if update_data.get("equipment_id") is not None:
+        result = await db.execute(
+            select(Equipment.id).where(
+                Equipment.id == update_data["equipment_id"],
+                Equipment.organization_id == current_org_id,
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Equipment not found",
+            )
+
+    if update_data.get("maintenance_type_id") is not None:
+        result = await db.execute(
+            select(MaintenanceTypeModel.id).where(
+                MaintenanceTypeModel.id == update_data["maintenance_type_id"]
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Maintenance type not found",
+            )
+
     for field, new_value in update_data.items():
         setattr(maintenance, field, new_value)
 
@@ -141,11 +197,35 @@ async def update_maintenance(
     return maintenance
 
 
+@router.delete("/{maintenance_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_maintenance(
+    maintenance_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_org_id: int = Depends(get_current_organization),
+):
+    result = await db.execute(
+        select(Maintenance).where(
+            Maintenance.id == maintenance_id,
+            Maintenance.organization_id == current_org_id,
+        )
+    )
+    maintenance = result.scalar_one_or_none()
+
+    if maintenance is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Maintenance not found",
+        )
+
+    await db.delete(maintenance)
+    await db.commit()
+
+
 @router.get("/alerts", response_model=list[MaintenanceAlertResponse])
 async def list_maintenance_alerts(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    status: Optional[str] = None,
+    status: str | None = None,
     db: AsyncSession = Depends(get_db),
     current_org_id: int = Depends(get_current_organization),
 ):
@@ -171,6 +251,18 @@ async def create_maintenance_alert(
     db: AsyncSession = Depends(get_db),
     current_org_id: int = Depends(get_current_organization),
 ):
+    result = await db.execute(
+        select(Equipment.id).where(
+            Equipment.id == alert_data.equipment_id,
+            Equipment.organization_id == current_org_id,
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Equipment not found",
+        )
+
     alert = MaintenanceAlert(**alert_data.model_dump())
     db.add(alert)
     await db.commit()

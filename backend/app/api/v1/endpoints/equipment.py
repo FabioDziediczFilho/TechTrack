@@ -1,19 +1,28 @@
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, or_
+from sqlalchemy import delete, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.core.deps import get_db, get_current_organization, get_current_user_id
-from app.models import Equipment, EquipmentTypeModel, EquipmentHistory, User, Sector
+from app.core.deps import get_current_organization, get_current_user_id, get_db
+from app.models import (
+    Equipment,
+    EquipmentHistory,
+    EquipmentTypeModel,
+    Maintenance,
+    MaintenanceAlert,
+    Sector,
+    Ticket,
+)
 from app.schemas.equipment import (
     EquipmentCreate,
-    EquipmentResponse,
-    EquipmentUpdate,
     EquipmentHistoryResponse,
+    EquipmentResponse,
     EquipmentTypeResponse,
-    SectorResponse,
+    EquipmentUpdate,
     SectorCreate,
+    SectorResponse,
+    SectorUpdate,
 )
 
 router = APIRouter()
@@ -53,9 +62,9 @@ async def list_equipment_types(db: AsyncSession = Depends(get_db)):
 async def list_equipment(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    type_id: Optional[int] = None,
-    status: Optional[str] = None,
-    search: Optional[str] = None,
+    type_id: int | None = None,
+    status: str | None = None,
+    search: str | None = None,
     db: AsyncSession = Depends(get_db),
     current_org_id: int = Depends(get_current_organization),
 ):
@@ -72,9 +81,9 @@ async def list_equipment(
         query = query.where(
             or_(
                 Equipment.asset_number.ilike(search_pattern),
-                Equipment.serial_number.ilike(search_pattern),
                 Equipment.brand.ilike(search_pattern),
                 Equipment.model.ilike(search_pattern),
+                Equipment.observation.ilike(search_pattern),
             )
         )
 
@@ -91,36 +100,46 @@ async def create_equipment(
     db: AsyncSession = Depends(get_db),
     current_org_id: int = Depends(get_current_organization),
 ):
+    if equipment_data.sector_id is not None:
+        result = await db.execute(
+            select(Sector.id).where(
+                Sector.id == equipment_data.sector_id,
+                Sector.organization_id == current_org_id,
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Sector not found",
+            )
+
     result = await db.execute(
-        select(Equipment).where(
-            Equipment.organization_id == current_org_id,
-            Equipment.asset_number == equipment_data.asset_number,
-        )
+        select(EquipmentTypeModel.id).where(EquipmentTypeModel.id == equipment_data.type_id)
     )
-    existing = result.scalar_one_or_none()
-
-    if existing:
+    if result.scalar_one_or_none() is None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Equipment with this asset number already exists in your organization",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Equipment type not found",
         )
 
-    result = await db.execute(
-        select(Equipment).where(
-            Equipment.organization_id == current_org_id,
-            Equipment.serial_number == equipment_data.serial_number,
+    if equipment_data.asset_number:
+        result = await db.execute(
+            select(Equipment).where(
+                Equipment.organization_id == current_org_id,
+                Equipment.asset_number == equipment_data.asset_number,
+            )
         )
-    )
-    existing = result.scalar_one_or_none()
+        existing = result.scalar_one_or_none()
 
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Equipment with this serial number already exists in your organization",
-        )
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Equipment with this asset number already exists in your organization",
+            )
 
     equipment = Equipment(
         organization_id=current_org_id,
+        serial_number=None,
         **equipment_data.model_dump(),
     )
     db.add(equipment)
@@ -152,11 +171,74 @@ async def create_sector(
         organization_id=current_org_id,
         name=sector_data.name,
         description=sector_data.description,
+        address=sector_data.address,
+        responsible=sector_data.responsible,
     )
     db.add(sector)
     await db.commit()
     await db.refresh(sector)
     return sector
+
+
+@router.put("/sectors/{sector_id}", response_model=SectorResponse)
+async def update_sector(
+    sector_id: int,
+    sector_data: SectorUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_org_id: int = Depends(get_current_organization),
+):
+    result = await db.execute(
+        select(Sector).where(
+            Sector.id == sector_id,
+            Sector.organization_id == current_org_id,
+        )
+    )
+    sector = result.scalar_one_or_none()
+
+    if sector is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sector not found",
+        )
+
+    for field, value in sector_data.model_dump(exclude_unset=True).items():
+        setattr(sector, field, value.strip() if isinstance(value, str) else value)
+
+    await db.commit()
+    await db.refresh(sector)
+    return sector
+
+
+@router.delete("/sectors/{sector_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_sector(
+    sector_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_org_id: int = Depends(get_current_organization),
+):
+    result = await db.execute(
+        select(Sector).where(
+            Sector.id == sector_id,
+            Sector.organization_id == current_org_id,
+        )
+    )
+    sector = result.scalar_one_or_none()
+
+    if sector is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sector not found",
+        )
+
+    await db.execute(
+        update(Equipment)
+        .where(
+            Equipment.sector_id == sector_id,
+            Equipment.organization_id == current_org_id,
+        )
+        .values(sector_id=None)
+    )
+    await db.delete(sector)
+    await db.commit()
 
 
 @router.get("/{equipment_id}", response_model=EquipmentResponse)
@@ -206,6 +288,45 @@ async def update_equipment(
 
     update_data = equipment_data.model_dump(exclude_unset=True)
 
+    if update_data.get("asset_number"):
+        result = await db.execute(
+            select(Equipment.id).where(
+                Equipment.organization_id == current_org_id,
+                Equipment.asset_number == update_data["asset_number"],
+                Equipment.id != equipment_id,
+            )
+        )
+        if result.scalar_one_or_none() is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Equipment with this asset number already exists in your organization",
+            )
+
+    if update_data.get("sector_id") is not None:
+        result = await db.execute(
+            select(Sector.id).where(
+                Sector.id == update_data["sector_id"],
+                Sector.organization_id == current_org_id,
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Sector not found",
+            )
+
+    if update_data.get("type_id") is not None:
+        result = await db.execute(
+            select(EquipmentTypeModel.id).where(
+                EquipmentTypeModel.id == update_data["type_id"]
+            )
+        )
+        if result.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Equipment type not found",
+            )
+
     for field, new_value in update_data.items():
         old_value = getattr(equipment, field)
         if old_value != new_value:
@@ -254,6 +375,26 @@ async def delete_equipment(
             detail="Equipment not found",
         )
 
+    await db.execute(
+        update(Ticket)
+        .where(
+            Ticket.equipment_id == equipment_id,
+            Ticket.organization_id == current_org_id,
+        )
+        .values(equipment_id=None)
+    )
+    await db.execute(
+        delete(Maintenance).where(
+            Maintenance.equipment_id == equipment_id,
+            Maintenance.organization_id == current_org_id,
+        )
+    )
+    await db.execute(
+        delete(MaintenanceAlert).where(MaintenanceAlert.equipment_id == equipment_id)
+    )
+    await db.execute(
+        delete(EquipmentHistory).where(EquipmentHistory.equipment_id == equipment_id)
+    )
     await db.delete(equipment)
     await db.commit()
 

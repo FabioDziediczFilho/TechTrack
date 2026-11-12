@@ -1,35 +1,41 @@
 from datetime import datetime
-from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict
 
 
 class MaintenanceTypeResponse(BaseModel):
     id: int
     name: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MaintenanceBase(BaseModel):
     equipment_id: int
     maintenance_type_id: int
     performed_by: int
-    description: Optional[str] = None
-    parts_replaced: Optional[str] = None
-    cost: Optional[float] = None
+    description: str | None = None
+    parts_replaced: str | None = None
+    cost: float | None = None
     performed_at: datetime
 
 
-class MaintenanceCreate(MaintenanceBase):
-    pass
+class MaintenanceCreate(BaseModel):
+    equipment_id: int
+    maintenance_type_id: int
+    description: str | None = None
+    parts_replaced: str | None = None
+    cost: float | None = None
+    performed_at: datetime
 
 
 class MaintenanceUpdate(BaseModel):
-    description: Optional[str] = None
-    parts_replaced: Optional[str] = None
-    cost: Optional[float] = None
+    equipment_id: int | None = None
+    maintenance_type_id: int | None = None
+    description: str | None = None
+    parts_replaced: str | None = None
+    cost: float | None = None
+    performed_at: datetime | None = None
 
 
 class MaintenanceResponse(MaintenanceBase):
@@ -37,8 +43,7 @@ class MaintenanceResponse(MaintenanceBase):
     organization_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MaintenanceAlertBase(BaseModel):
@@ -59,5 +64,4 @@ class MaintenanceAlertResponse(MaintenanceAlertBase):
     status: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

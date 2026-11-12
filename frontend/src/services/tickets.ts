@@ -1,5 +1,5 @@
 import api from './api'
-import { Ticket, TicketComment } from '../types'
+import { Ticket, TicketComment, TicketCreateInput } from '../types'
 
 export const ticketService = {
   list: async (params?: { status?: string; priority?: string; assigned_to?: number; equipment_id?: number }) => {
@@ -7,7 +7,7 @@ export const ticketService = {
     return response.data
   },
 
-  create: async (data: Partial<Ticket>) => {
+  create: async (data: TicketCreateInput) => {
     const response = await api.post<Ticket>('/api/v1/tickets/', data)
     return response.data
   },

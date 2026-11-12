@@ -1,16 +1,15 @@
 from datetime import datetime, timedelta
-from typing import List
 
-from fastapi import APIRouter, Depends
-from sqlalchemy import select, func, and_
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_db, get_current_organization
-from app.models import Equipment, Ticket, MaintenanceAlert, EquipmentTypeModel
+from app.core.deps import get_current_organization, get_db
+from app.models import Equipment, EquipmentTypeModel, Ticket
 from app.schemas.dashboard import (
     DashboardStats,
-    TicketsByPeriod,
     EquipmentByType,
+    TicketsByPeriod,
 )
 
 router = APIRouter()
@@ -68,11 +67,7 @@ async def get_dashboard_stats(
 
     # Average resolution time (days)
     result = await db.execute(
-        select(
-            func.avg(
-                func.julianday(Ticket.closed_at) - func.julianday(Ticket.created_at)
-            )
-        ).where(
+        select(Ticket.created_at, Ticket.closed_at).where(
             and_(
                 Ticket.organization_id == current_org_id,
                 Ticket.status == "closed",
@@ -80,8 +75,17 @@ async def get_dashboard_stats(
             )
         )
     )
-    avg_resolution = result.scalar()
-    avg_resolution_time_days = float(avg_resolution) if avg_resolution else 0.0
+    resolution_times = result.all()
+    avg_resolution_time_days = (
+        sum(
+            (closed_at - created_at).total_seconds() / 86400
+            for created_at, closed_at in resolution_times
+            if closed_at is not None
+        )
+        / len(resolution_times)
+        if resolution_times
+        else 0.0
+    )
 
     return DashboardStats(
         total_equipment=total_equipment,
@@ -93,9 +97,9 @@ async def get_dashboard_stats(
     )
 
 
-@router.get("/tickets-by-period", response_model=List[TicketsByPeriod])
+@router.get("/tickets-by-period", response_model=list[TicketsByPeriod])
 async def get_tickets_by_period(
-    days: int = 30,
+    days: int = Query(30, ge=1, le=365),
     db: AsyncSession = Depends(get_db),
     current_org_id: int = Depends(get_current_organization),
 ):
@@ -124,7 +128,7 @@ async def get_tickets_by_period(
     return tickets_by_period
 
 
-@router.get("/equipment-by-type", response_model=List[EquipmentByType])
+@router.get("/equipment-by-type", response_model=list[EquipmentByType])
 async def get_equipment_by_type(
     db: AsyncSession = Depends(get_db),
     current_org_id: int = Depends(get_current_organization),

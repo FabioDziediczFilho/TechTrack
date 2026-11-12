@@ -1,8 +1,9 @@
 import React from 'react'
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Navigate, Outlet, useNavigate } from 'react-router-dom'
 import {
   AppBar,
   Box,
+  CircularProgress,
   Container,
   Drawer,
   IconButton,
@@ -17,8 +18,8 @@ import {
 import {
   Dashboard as DashboardIcon,
   Inventory as EquipmentIcon,
-  SupportAgent as TicketsIcon,
   Build as MaintenanceIcon,
+  Business as DepartmentsIcon,
   Logout as LogoutIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material'
@@ -29,12 +30,12 @@ const drawerWidth = 240
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
   { text: 'Equipamentos', icon: <EquipmentIcon />, path: '/equipment' },
-  { text: 'Chamados', icon: <TicketsIcon />, path: '/tickets' },
+  { text: 'Departamentos', icon: <DepartmentsIcon />, path: '/departments' },
   { text: 'Manutenção', icon: <MaintenanceIcon />, path: '/maintenance' },
 ]
 
 const Layout: React.FC = () => {
-  const { user, logout, isAuthenticated } = useAuth()
+  const { user, logout, isAuthenticated, isLoading } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = React.useState(false)
 
@@ -47,8 +48,12 @@ const Layout: React.FC = () => {
     navigate('/login')
   }
 
+  if (isLoading) {
+    return <CircularProgress sx={{ display: 'block', m: 4 }} />
+  }
+
   if (!isAuthenticated) {
-    return null
+    return <Navigate to="/login" replace />
   }
 
   const drawer = (

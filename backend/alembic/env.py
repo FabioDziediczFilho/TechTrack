@@ -13,8 +13,10 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Use synchronous SQLite for migrations
-sync_db_url = settings.DATABASE_URL.replace("sqlite+aiosqlite", "sqlite")
+# Alembic runs synchronously, while the application uses async database drivers.
+sync_db_url = settings.DATABASE_URL.replace("sqlite+aiosqlite", "sqlite").replace(
+    "postgresql+asyncpg", "postgresql+psycopg"
+)
 config.set_main_option("sqlalchemy.url", sync_db_url)
 
 target_metadata = Base.metadata

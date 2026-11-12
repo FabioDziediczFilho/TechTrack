@@ -17,6 +17,7 @@ interface AuthContextType {
   register: (data: RegisterData) => Promise<void>
   logout: () => Promise<void>
   isAuthenticated: boolean
+  isLoading: boolean
 }
 
 interface RegisterData {
@@ -35,20 +36,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [refreshToken, setRefreshToken] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const storedAccessToken = localStorage.getItem('access_token')
-    const storedRefreshToken = localStorage.getItem('refresh_token')
-    const storedUser = localStorage.getItem('user')
+    try {
+      const storedAccessToken = localStorage.getItem('access_token')
+      const storedRefreshToken = localStorage.getItem('refresh_token')
+      const storedUser = localStorage.getItem('user')
 
-    if (storedAccessToken && storedRefreshToken) {
-      setAccessToken(storedAccessToken)
-      setRefreshToken(storedRefreshToken)
-
-      if (storedUser) {
-        setUser(JSON.parse(storedUser))
-      } else if (storedAccessToken) {
-        // Decode JWT to get user data if not in localStorage
+      if (storedAccessToken && storedRefreshToken && storedUser) {
+        const userData = JSON.parse(storedUser) as User
+        setAccessToken(storedAccessToken)
+        setRefreshToken(storedRefreshToken)
+        setUser(userData)
+      } else if (storedAccessToken && storedRefreshToken) {
         try {
           const payload = JSON.parse(atob(storedAccessToken.split('.')[1]))
           const userData: User = {
@@ -58,12 +59,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role: 'user',
             organization_id: payload.organization_id,
           }
+          setAccessToken(storedAccessToken)
+          setRefreshToken(storedRefreshToken)
           setUser(userData)
           localStorage.setItem('user', JSON.stringify(userData))
         } catch (error) {
           console.error('Error decoding JWT:', error)
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('user')
         }
+      } else {
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('user')
       }
+    } catch (error) {
+      console.error('Error restoring saved session:', error)
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('user')
+    } finally {
+      setIsLoading(false)
     }
   }, [])
 
@@ -131,7 +148,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     register,
     logout,
-    isAuthenticated: !!accessToken,
+    isAuthenticated: !!accessToken && !!user,
+    isLoading,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

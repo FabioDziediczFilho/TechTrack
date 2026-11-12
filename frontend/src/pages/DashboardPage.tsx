@@ -158,7 +158,7 @@ const DashboardPage: React.FC = () => {
                   fill="#8884d8"
                   dataKey="count"
                 >
-                  {(equipmentByType || []).map((entry, index) => (
+                  {(equipmentByType || []).map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

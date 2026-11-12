@@ -1,43 +1,73 @@
 from datetime import datetime
-from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class EquipmentTypeResponse(BaseModel):
     id: int
     name: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SectorResponse(BaseModel):
     id: int
     name: str
-    description: Optional[str]
+    description: str | None
+    address: str | None
+    responsible: str | None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SectorCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    description: Optional[str] = Field(None, max_length=255)
+    description: str | None = Field(None, max_length=255)
+    address: str | None = Field(None, max_length=500)
+    responsible: str | None = Field(None, max_length=255)
+
+
+class SectorUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=100)
+    description: str | None = Field(None, max_length=255)
+    address: str | None = Field(None, max_length=500)
+    responsible: str | None = Field(None, max_length=255)
+
+    @field_validator("name")
+    @classmethod
+    def name_cannot_be_null(cls, value: str | None) -> str | None:
+        if value is None:
+            raise ValueError("Department name cannot be null")
+        return value
 
 
 class EquipmentBase(BaseModel):
     type_id: int
-    sector_id: Optional[int] = None
-    asset_number: str = Field(..., min_length=1, max_length=100)
-    serial_number: str = Field(..., min_length=1, max_length=100)
-    brand: str = Field(..., min_length=1, max_length=100)
-    model: str = Field(..., min_length=1, max_length=100)
-    processor: Optional[str] = Field(None, max_length=100)
-    memory: Optional[str] = Field(None, max_length=50)
-    storage: Optional[str] = Field(None, max_length=50)
-    location: Optional[str] = Field(None, max_length=255)
+    sector_id: int | None = None
+    asset_number: str | None = Field(None, max_length=100)
+    brand: str | None = Field(None, max_length=100)
+    model: str | None = Field(None, max_length=100)
+    processor: str | None = Field(None, max_length=100)
+    memory: str | None = Field(None, max_length=50)
+    storage: str | None = Field(None, max_length=50)
+    observation: str | None = Field(None, max_length=2000)
     status: str = "active"
+
+    @field_validator(
+        "asset_number",
+        "brand",
+        "model",
+        "processor",
+        "memory",
+        "storage",
+        "observation",
+        mode="before",
+    )
+    @classmethod
+    def normalize_optional_text(cls, value: str | None) -> str | None:
+        if isinstance(value, str):
+            return value.strip() or None
+        return value
 
 
 class EquipmentCreate(EquipmentBase):
@@ -45,17 +75,16 @@ class EquipmentCreate(EquipmentBase):
 
 
 class EquipmentUpdate(BaseModel):
-    type_id: Optional[int] = None
-    sector_id: Optional[int] = None
-    asset_number: Optional[str] = Field(None, max_length=100)
-    serial_number: Optional[str] = Field(None, max_length=100)
-    brand: Optional[str] = Field(None, max_length=100)
-    model: Optional[str] = Field(None, max_length=100)
-    processor: Optional[str] = Field(None, max_length=100)
-    memory: Optional[str] = Field(None, max_length=50)
-    storage: Optional[str] = Field(None, max_length=50)
-    location: Optional[str] = Field(None, max_length=255)
-    status: Optional[str] = None
+    type_id: int | None = None
+    sector_id: int | None = None
+    asset_number: str | None = Field(None, max_length=100)
+    brand: str | None = Field(None, max_length=100)
+    model: str | None = Field(None, max_length=100)
+    processor: str | None = Field(None, max_length=100)
+    memory: str | None = Field(None, max_length=50)
+    storage: str | None = Field(None, max_length=50)
+    observation: str | None = Field(None, max_length=2000)
+    status: str | None = None
 
 
 class EquipmentResponse(EquipmentBase):
@@ -65,8 +94,7 @@ class EquipmentResponse(EquipmentBase):
     updated_at: datetime
     type_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class EquipmentHistoryResponse(BaseModel):
@@ -74,9 +102,8 @@ class EquipmentHistoryResponse(BaseModel):
     equipment_id: int
     changed_by: int
     field_name: str
-    old_value: Optional[str]
-    new_value: Optional[str]
+    old_value: str | None
+    new_value: str | None
     changed_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

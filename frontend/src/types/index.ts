@@ -17,6 +17,8 @@ export interface Sector {
   id: number
   name: string
   description: string | null
+  address: string | null
+  responsible: string | null
 }
 
 export interface Equipment {
@@ -24,18 +26,25 @@ export interface Equipment {
   organization_id: number
   type_id: number
   sector_id: number | null
-  asset_number: string
-  serial_number: string
-  brand: string
-  model: string
+  asset_number: string | null
+  brand: string | null
+  model: string | null
   processor: string | null
   memory: string | null
   storage: string | null
-  location: string | null
+  observation: string | null
   status: string
   created_at: string
   updated_at: string
 }
+
+export type EquipmentCreateInput = Omit<
+  Equipment,
+  'id' | 'organization_id' | 'created_at' | 'updated_at'
+>
+
+export type EquipmentUpdateInput = Partial<EquipmentCreateInput>
+export type SectorInput = Pick<Sector, 'name' | 'description' | 'address' | 'responsible'>
 
 export interface Ticket {
   id: number
@@ -50,6 +59,11 @@ export interface Ticket {
   created_at: string
   updated_at: string
   closed_at: string | null
+}
+
+export type TicketCreateInput = Pick<Ticket, 'title' | 'priority'> & {
+  description: string | null
+  equipment_id: number | null
 }
 
 export interface TicketComment {
@@ -77,6 +91,12 @@ export interface Maintenance {
   performed_at: string
   created_at: string
 }
+
+export type MaintenanceCreateInput = Omit<
+  Maintenance,
+  'id' | 'organization_id' | 'performed_by' | 'created_at'
+>
+export type MaintenanceUpdateInput = Partial<MaintenanceCreateInput>
 
 export interface MaintenanceAlert {
   id: number

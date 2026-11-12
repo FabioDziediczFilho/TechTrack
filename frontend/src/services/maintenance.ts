@@ -1,5 +1,11 @@
 import api from './api'
-import { Maintenance, MaintenanceAlert, MaintenanceType } from '../types'
+import {
+  Maintenance,
+  MaintenanceAlert,
+  MaintenanceCreateInput,
+  MaintenanceUpdateInput,
+  MaintenanceType,
+} from '../types'
 
 export const maintenanceService = {
   getTypes: async () => {
@@ -17,7 +23,7 @@ export const maintenanceService = {
     return response.data
   },
 
-  create: async (data: Partial<Maintenance>) => {
+  create: async (data: MaintenanceCreateInput) => {
     const response = await api.post<Maintenance>('/api/v1/maintenance/', data)
     return response.data
   },
@@ -27,9 +33,13 @@ export const maintenanceService = {
     return response.data
   },
 
-  update: async (id: number, data: Partial<Maintenance>) => {
+  update: async (id: number, data: MaintenanceUpdateInput) => {
     const response = await api.put<Maintenance>(`/api/v1/maintenance/${id}`, data)
     return response.data
+  },
+
+  delete: async (id: number) => {
+    await api.delete(`/api/v1/maintenance/${id}`)
   },
 
   listAlerts: async (params?: { status?: string }) => {
