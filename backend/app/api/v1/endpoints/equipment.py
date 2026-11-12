@@ -130,6 +130,35 @@ async def create_equipment(
     return equipment
 
 
+@router.get("/sectors", response_model=list[SectorResponse])
+async def list_sectors(
+    db: AsyncSession = Depends(get_db),
+    current_org_id: int = Depends(get_current_organization),
+):
+    result = await db.execute(
+        select(Sector).where(Sector.organization_id == current_org_id)
+    )
+    sectors = result.scalars().all()
+    return sectors
+
+
+@router.post("/sectors", response_model=SectorResponse, status_code=status.HTTP_201_CREATED)
+async def create_sector(
+    sector_data: SectorCreate,
+    db: AsyncSession = Depends(get_db),
+    current_org_id: int = Depends(get_current_organization),
+):
+    sector = Sector(
+        organization_id=current_org_id,
+        name=sector_data.name,
+        description=sector_data.description,
+    )
+    db.add(sector)
+    await db.commit()
+    await db.refresh(sector)
+    return sector
+
+
 @router.get("/{equipment_id}", response_model=EquipmentResponse)
 async def get_equipment(
     equipment_id: int,
@@ -257,32 +286,3 @@ async def get_equipment_history(
     history = result.scalars().all()
 
     return history
-
-
-@router.get("/sectors", response_model=list[SectorResponse])
-async def list_sectors(
-    db: AsyncSession = Depends(get_db),
-    current_org_id: int = Depends(get_current_organization),
-):
-    result = await db.execute(
-        select(Sector).where(Sector.organization_id == current_org_id)
-    )
-    sectors = result.scalars().all()
-    return sectors
-
-
-@router.post("/sectors", response_model=SectorResponse, status_code=status.HTTP_201_CREATED)
-async def create_sector(
-    sector_data: SectorCreate,
-    db: AsyncSession = Depends(get_db),
-    current_org_id: int = Depends(get_current_organization),
-):
-    sector = Sector(
-        organization_id=current_org_id,
-        name=sector_data.name,
-        description=sector_data.description,
-    )
-    db.add(sector)
-    await db.commit()
-    await db.refresh(sector)
-    return sector
