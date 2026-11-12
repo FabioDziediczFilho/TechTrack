@@ -1,5 +1,5 @@
 import api from './api'
-import { Equipment, EquipmentType } from '../types'
+import { Equipment, EquipmentType, Sector } from '../types'
 
 export const equipmentService = {
   getTypes: async () => {
@@ -9,6 +9,16 @@ export const equipmentService = {
 
   createType: async (name: string) => {
     const response = await api.post<EquipmentType>(`/api/v1/equipment/types?name=${name}`)
+    return response.data
+  },
+
+  getSectors: async () => {
+    const response = await api.get<Sector[]>('/api/v1/equipment/sectors')
+    return response.data
+  },
+
+  createSector: async (name: string, description?: string) => {
+    const response = await api.post<Sector>('/api/v1/equipment/sectors', { name, description })
     return response.data
   },
 

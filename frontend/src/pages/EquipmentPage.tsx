@@ -15,6 +15,7 @@ const EquipmentPage: React.FC = () => {
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null)
   const [formData, setFormData] = useState({
     type_id: '',
+    sector_id: '',
     asset_number: '',
     serial_number: '',
     brand: '',
@@ -38,6 +39,11 @@ const EquipmentPage: React.FC = () => {
     queryFn: equipmentService.getTypes,
   })
 
+  const { data: sectors } = useQuery({
+    queryKey: ['sectors'],
+    queryFn: equipmentService.getSectors,
+  })
+
   const createMutation = useMutation({
     mutationFn: equipmentService.create,
     onSuccess: () => {
@@ -45,6 +51,7 @@ const EquipmentPage: React.FC = () => {
       setOpen(false)
       setFormData({
         type_id: '',
+        sector_id: '',
         asset_number: '',
         serial_number: '',
         brand: '',
@@ -128,6 +135,7 @@ const EquipmentPage: React.FC = () => {
               <TableCell>Número de Série</TableCell>
               <TableCell>Marca</TableCell>
               <TableCell>Modelo</TableCell>
+              <TableCell>Setor</TableCell>
               <TableCell>Localização</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Ações</TableCell>
@@ -145,6 +153,7 @@ const EquipmentPage: React.FC = () => {
                 <TableCell>{item.serial_number}</TableCell>
                 <TableCell>{item.brand}</TableCell>
                 <TableCell>{item.model}</TableCell>
+                <TableCell>{sectors?.find(s => s.id === item.sector_id)?.name || '-'}</TableCell>
                 <TableCell>{item.location || '-'}</TableCell>
                 <TableCell>
                   <Chip label={getStatusLabel(item.status)} color={getStatusColor(item.status) as any} size="small" />
@@ -158,7 +167,7 @@ const EquipmentPage: React.FC = () => {
             ))}
             {equipment?.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={8} align="center">
                   Nenhum equipamento cadastrado
                 </TableCell>
               </TableRow>
@@ -185,6 +194,24 @@ const EquipmentPage: React.FC = () => {
                     {types?.map((type) => (
                       <MenuItem key={type.id} value={type.id}>
                         {type.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Setor</InputLabel>
+                  <Select
+                    name="sector_id"
+                    value={formData.sector_id}
+                    onChange={handleChange}
+                    label="Setor"
+                  >
+                    <MenuItem value="">Nenhum</MenuItem>
+                    {sectors?.map((sector) => (
+                      <MenuItem key={sector.id} value={sector.id}>
+                        {sector.name}
                       </MenuItem>
                     ))}
                   </Select>
@@ -313,6 +340,10 @@ const EquipmentPage: React.FC = () => {
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Modelo</Typography>
                 <Typography variant="body1">{selectedEquipment.model}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Setor</Typography>
+                <Typography variant="body1">{sectors?.find(s => s.id === selectedEquipment.sector_id)?.name || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Processador</Typography>

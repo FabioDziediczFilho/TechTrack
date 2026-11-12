@@ -13,10 +13,17 @@ export interface EquipmentType {
   name: string
 }
 
+export interface Sector {
+  id: number
+  name: string
+  description: string | null
+}
+
 export interface Equipment {
   id: number
   organization_id: number
   type_id: number
+  sector_id: number | null
   asset_number: string
   serial_number: string
   brand: string
