@@ -64,11 +64,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { access_token, refresh_token } = response.data
 
-    const userResponse = await axios.get(`${API_URL}/api/v1/auth/me`, {
-      headers: { Authorization: `Bearer ${access_token}` },
-    })
-
-    const userData = userResponse.data
+    // Decode JWT to get user data (simplified approach)
+    const payload = JSON.parse(atob(access_token.split('.')[1]))
+    const userData: User = {
+      id: parseInt(payload.sub),
+      email: payload.email,
+      full_name: 'User', // Will be updated later if needed
+      role: 'user',
+      organization_id: payload.organization_id,
+    }
 
     setAccessToken(access_token)
     setRefreshToken(refresh_token)

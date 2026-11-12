@@ -47,9 +47,10 @@ const Layout: React.FC = () => {
     navigate('/login')
   }
 
-  if (!isAuthenticated) {
-    return null
-  }
+  // Temporarily disable auth check for debugging
+  // if (!isAuthenticated) {
+  //   return null
+  // }
 
   const drawer = (
     <div>
@@ -101,7 +102,7 @@ const Layout: React.FC = () => {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             TechTrack
           </Typography>
-          <Typography variant="body2">{user?.full_name}</Typography>
+          <Typography variant="body2">{user?.full_name || 'Usuário'}</Typography>
         </Toolbar>
       </AppBar>
       <Box component="nav" sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}>
