@@ -20,6 +20,9 @@ class Settings(BaseSettings):
             "http://localhost:3000",
         ]
     )
+    CORS_ORIGIN_REGEX: str | None = (
+        r"^https://tech-track-[a-z0-9]+-fabiodziediczfilhos-projects\.vercel\.app$"
+    )
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

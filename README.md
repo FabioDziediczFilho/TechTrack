@@ -115,9 +115,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 ENVIRONMENT=development
 CORS_ORIGINS=["http://localhost:5173","http://localhost:5174","http://localhost:3000"]
+CORS_ORIGIN_REGEX=^https://tech-track-[a-z0-9]+-fabiodziediczfilhos-projects\.vercel\.app$
 ```
 
-Em produção, defina `ENVIRONMENT=production`, use uma `SECRET_KEY` aleatória própria e configure `CORS_ORIGINS` com as origens reais do frontend. A chave de desenvolvimento não é aceita nesse modo.
+Em produção, defina `ENVIRONMENT=production`, use uma `SECRET_KEY` aleatória própria e configure `CORS_ORIGINS` com as origens estáveis do frontend. `CORS_ORIGIN_REGEX` autoriza os previews Vercel deste projeto, cujos endereços mudam a cada deploy. Ajuste essa expressão se o projeto ou a equipe Vercel mudar. A chave de desenvolvimento não é aceita nesse modo.
 
 ### Frontend (.env)
 
