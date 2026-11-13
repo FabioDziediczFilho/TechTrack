@@ -12,6 +12,7 @@ const EquipmentPage = lazy(() => import('./pages/EquipmentPage'))
 const DepartmentsPage = lazy(() => import('./pages/DepartmentsPage'))
 const MaintenancePage = lazy(() => import('./pages/MaintenancePage'))
 const UsersPage = lazy(() => import('./pages/UsersPage'))
+const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,6 +61,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/equipment" element={<EquipmentPage />} />
               <Route path="/departments" element={<DepartmentsPage />} />
+              <Route path="/reports" element={<ReportsPage />} />
               <Route path="/tickets" element={<Navigate to="/dashboard" replace />} />
               <Route path="/maintenance" element={<MaintenancePage />} />
               <Route path="/users" element={<UsersPage />} />

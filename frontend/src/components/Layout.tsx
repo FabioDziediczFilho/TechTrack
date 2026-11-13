@@ -24,6 +24,7 @@ import {
   LogoutRounded as LogoutIcon,
   MenuRounded as MenuIcon,
   PeopleAltRounded as UsersIcon,
+  AssessmentRounded as ReportsIcon,
 } from '@mui/icons-material'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -33,6 +34,7 @@ const menuItems: { text: string; icon: React.ReactNode; path: string; adminOnly?
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
   { text: 'Equipamentos', icon: <EquipmentIcon />, path: '/equipment' },
   { text: 'Departamentos', icon: <DepartmentsIcon />, path: '/departments' },
+  { text: 'Relatórios', icon: <ReportsIcon />, path: '/reports' },
   { text: 'Manutenção', icon: <MaintenanceIcon />, path: '/maintenance' },
   { text: 'Usuários', icon: <UsersIcon />, path: '/users', adminOnly: true },
 ]
