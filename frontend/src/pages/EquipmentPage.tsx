@@ -24,6 +24,7 @@ const EquipmentPage: React.FC = () => {
   const [formData, setFormData] = useState({
     type_id: '' as string,
     sector_id: '' as string,
+    computer_number: '',
     asset_number: '',
     brand: '',
     model: '',
@@ -59,6 +60,7 @@ const EquipmentPage: React.FC = () => {
       setFormData({
         type_id: '',
         sector_id: '',
+        computer_number: '',
         asset_number: '',
         brand: '',
         model: '',
@@ -101,6 +103,7 @@ const EquipmentPage: React.FC = () => {
     setFormData({
       type_id: '',
       sector_id: '',
+      computer_number: '',
       asset_number: '',
       brand: '',
       model: '',
@@ -132,6 +135,7 @@ const EquipmentPage: React.FC = () => {
     setFormData({
       type_id: String(item.type_id),
       sector_id: item.sector_id === null ? '' : String(item.sector_id),
+      computer_number: item.computer_number ?? '',
       asset_number: item.asset_number ?? '',
       brand: item.brand ?? '',
       model: item.model ?? '',
@@ -146,7 +150,7 @@ const EquipmentPage: React.FC = () => {
   }
 
   const handleDelete = (item: Equipment) => {
-    const equipmentName = item.asset_number || `#${item.id}`
+    const equipmentName = item.computer_number || item.asset_number || `#${item.id}`
     const confirmed = window.confirm(
       `Excluir o equipamento ${equipmentName}?\n\n` +
         'O histórico de alterações, manutenções e alertas de manutenção vinculados serão excluídos. ' +
@@ -168,6 +172,7 @@ const EquipmentPage: React.FC = () => {
       ...formData,
       type_id: Number(formData.type_id),
       sector_id: formData.sector_id ? Number(formData.sector_id) : null,
+      computer_number: formData.computer_number.trim() || null,
       asset_number: formData.asset_number.trim() || null,
       brand: formData.brand.trim() || null,
       model: formData.model.trim() || null,
@@ -248,7 +253,7 @@ const EquipmentPage: React.FC = () => {
         <Table sx={{ minWidth: 760 }}>
           <TableHead>
             <TableRow>
-              <TableCell>Número Patrimônio</TableCell>
+              <TableCell>Número do computador</TableCell>
               <TableCell>Marca</TableCell>
               <TableCell>Modelo</TableCell>
               <TableCell>Setor</TableCell>
@@ -265,7 +270,7 @@ const EquipmentPage: React.FC = () => {
                 sx={{ cursor: 'pointer' }}
                 onClick={() => handleViewDetails(item)}
               >
-                <TableCell>{item.asset_number || '-'}</TableCell>
+                <TableCell>{item.computer_number || item.asset_number || '-'}</TableCell>
                 <TableCell>{item.brand || '-'}</TableCell>
                 <TableCell>{item.model || '-'}</TableCell>
                 <TableCell>{sectors?.find(s => s.id === item.sector_id)?.name || '-'}</TableCell>
@@ -279,7 +284,7 @@ const EquipmentPage: React.FC = () => {
                   </IconButton>
                   <IconButton
                     size="small"
-                    aria-label={`Editar equipamento ${item.asset_number || item.id}`}
+                    aria-label={`Editar equipamento ${item.computer_number || item.asset_number || item.id}`}
                     onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
                   >
                     <EditIcon fontSize="small" />
@@ -287,7 +292,7 @@ const EquipmentPage: React.FC = () => {
                   <IconButton
                     size="small"
                     color="error"
-                    aria-label={`Excluir equipamento ${item.asset_number || item.id}`}
+                    aria-label={`Excluir equipamento ${item.computer_number || item.asset_number || item.id}`}
                     onClick={(e) => { e.stopPropagation(); handleDelete(item); }}
                     disabled={deleteMutation.isPending}
                   >
@@ -319,7 +324,7 @@ const EquipmentPage: React.FC = () => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
                 <Box sx={{ minWidth: 0 }}>
                   <Typography variant="subtitle1" fontWeight={600} sx={{ overflowWrap: 'anywhere' }}>
-                    {item.asset_number || `Equipamento #${item.id}`}
+                    {item.computer_number || item.asset_number || `Equipamento #${item.id}`}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {[item.brand, item.model].filter(Boolean).join(' ') || 'Marca/modelo não informados'}
@@ -342,14 +347,14 @@ const EquipmentPage: React.FC = () => {
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
                 <IconButton
                   size="small"
-                  aria-label={`Ver equipamento ${item.asset_number || item.id}`}
+                  aria-label={`Ver equipamento ${item.computer_number || item.asset_number || item.id}`}
                   onClick={(event) => { event.stopPropagation(); handleViewDetails(item) }}
                 >
                   <ViewIcon fontSize="small" />
                 </IconButton>
                 <IconButton
                   size="small"
-                  aria-label={`Editar equipamento ${item.asset_number || item.id}`}
+                  aria-label={`Editar equipamento ${item.computer_number || item.asset_number || item.id}`}
                   onClick={(event) => { event.stopPropagation(); handleEdit(item) }}
                 >
                   <EditIcon fontSize="small" />
@@ -357,7 +362,7 @@ const EquipmentPage: React.FC = () => {
                 <IconButton
                   size="small"
                   color="error"
-                  aria-label={`Excluir equipamento ${item.asset_number || item.id}`}
+                  aria-label={`Excluir equipamento ${item.computer_number || item.asset_number || item.id}`}
                   onClick={(event) => { event.stopPropagation(); handleDelete(item) }}
                   disabled={deleteMutation.isPending}
                 >
@@ -421,6 +426,15 @@ const EquipmentPage: React.FC = () => {
                     ))}
                   </Select>
                 </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  name="computer_number"
+                  label="Número do computador"
+                  fullWidth
+                  value={formData.computer_number}
+                  onChange={handleChange}
+                />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -524,6 +538,10 @@ const EquipmentPage: React.FC = () => {
         <DialogContent>
           {selectedEquipment && (
             <Grid container spacing={2} sx={{ mt: 2 }}>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Número do computador</Typography>
+                <Typography variant="body1">{selectedEquipment.computer_number || '-'}</Typography>
+              </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Número Patrimônio</Typography>
                 <Typography variant="body1">{selectedEquipment.asset_number || '-'}</Typography>

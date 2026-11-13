@@ -80,6 +80,7 @@ async def list_equipment(
         search_pattern = f"%{search}%"
         query = query.where(
             or_(
+                Equipment.computer_number.ilike(search_pattern),
                 Equipment.asset_number.ilike(search_pattern),
                 Equipment.brand.ilike(search_pattern),
                 Equipment.model.ilike(search_pattern),

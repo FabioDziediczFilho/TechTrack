@@ -44,6 +44,7 @@ class SectorUpdate(BaseModel):
 class EquipmentBase(BaseModel):
     type_id: int
     sector_id: int | None = None
+    computer_number: str | None = Field(None, max_length=100)
     asset_number: str | None = Field(None, max_length=100)
     brand: str | None = Field(None, max_length=100)
     model: str | None = Field(None, max_length=100)
@@ -55,6 +56,7 @@ class EquipmentBase(BaseModel):
 
     @field_validator(
         "asset_number",
+        "computer_number",
         "brand",
         "model",
         "processor",
@@ -77,6 +79,7 @@ class EquipmentCreate(EquipmentBase):
 class EquipmentUpdate(BaseModel):
     type_id: int | None = None
     sector_id: int | None = None
+    computer_number: str | None = Field(None, max_length=100)
     asset_number: str | None = Field(None, max_length=100)
     brand: str | None = Field(None, max_length=100)
     model: str | None = Field(None, max_length=100)

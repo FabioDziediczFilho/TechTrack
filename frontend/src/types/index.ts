@@ -28,6 +28,7 @@ export interface Equipment {
   organization_id: number
   type_id: number
   sector_id: number | null
+  computer_number: string | null
   asset_number: string | null
   brand: string | null
   model: string | null

@@ -219,6 +219,43 @@ async def test_equipment_status_can_be_changed(client: AsyncClient):
     assert updated.json()["status"] == "maintenance"
 
 
+async def test_equipment_computer_number_can_be_created_updated_and_cleared(
+    client: AsyncClient,
+):
+    token, _ = await create_account(client, "computer-number-org")
+    headers = {"Authorization": f"Bearer {token}"}
+    type_id = await create_equipment_type(client, token)
+
+    created = await client.post(
+        "/api/v1/equipment/",
+        headers=headers,
+        json={
+            "type_id": type_id,
+            "computer_number": "PC-024",
+            "asset_number": "PATR-778",
+        },
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["computer_number"] == "PC-024"
+    assert created.json()["asset_number"] == "PATR-778"
+
+    updated = await client.put(
+        f"/api/v1/equipment/{created.json()['id']}",
+        headers=headers,
+        json={"computer_number": "PC-025"},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["computer_number"] == "PC-025"
+
+    cleared = await client.put(
+        f"/api/v1/equipment/{created.json()['id']}",
+        headers=headers,
+        json={"computer_number": "  "},
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["computer_number"] is None
+
+
 async def test_deleting_equipment_removes_history_and_maintenance_but_keeps_tickets(
     client: AsyncClient,
 ):

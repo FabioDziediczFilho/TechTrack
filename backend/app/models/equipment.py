@@ -48,6 +48,7 @@ class Equipment(Base):
     organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), nullable=False, index=True)
     type_id: Mapped[int] = mapped_column(ForeignKey("equipment_types.id"), nullable=False)
     sector_id: Mapped[int] = mapped_column(ForeignKey("sectors.id"), nullable=True)
+    computer_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
     asset_number: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     serial_number: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     brand: Mapped[str | None] = mapped_column(String(100), nullable=True)
