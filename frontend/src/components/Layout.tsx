@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { Suspense } from 'react'
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   AppBar,
@@ -52,6 +53,10 @@ const Layout: React.FC = () => {
     .map((part) => part[0])
     .join('')
     .toUpperCase()
+
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [location.pathname])
 
   const handleNavigate = (path: string) => {
     navigate(path)
@@ -302,7 +307,19 @@ const Layout: React.FC = () => {
       >
         <Toolbar sx={{ minHeight: '72px !important' }} />
         <Container maxWidth="xl" disableGutters>
-          <Outlet />
+          <Suspense
+            fallback={
+              <Box
+                role="status"
+                aria-label="Carregando página"
+                sx={{ minHeight: 240, display: 'grid', placeItems: 'center' }}
+              >
+                <CircularProgress />
+              </Box>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </Container>
       </Box>
     </Box>
