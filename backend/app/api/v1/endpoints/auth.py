@@ -1,3 +1,5 @@
+import re
+import unicodedata
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -21,15 +23,6 @@ router = APIRouter()
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Organization).where(Organization.slug == user_data.organization_slug))
-    existing_org = result.scalar_one_or_none()
-
-    if existing_org:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Organization with this slug already exists",
-        )
-
     result = await db.execute(select(User).where(User.email == user_data.email))
     existing_user = result.scalar_one_or_none()
 
@@ -39,9 +32,23 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
             detail="User with this email already exists",
         )
 
+    organization_name = (
+        user_data.organization_name or f"Organização de {user_data.full_name}"
+    )[:255]
+    normalized_name = unicodedata.normalize("NFKD", organization_name)
+    ascii_name = normalized_name.encode("ascii", "ignore").decode("ascii").lower()
+    slug_base = re.sub(r"[^a-z0-9]+", "-", ascii_name).strip("-") or "organizacao"
+    slug_base = slug_base[:100].rstrip("-")
+    organization_slug = slug_base
+    suffix = 2
+    while await db.scalar(select(Organization.id).where(Organization.slug == organization_slug)):
+        suffix_text = f"-{suffix}"
+        organization_slug = f"{slug_base[:100 - len(suffix_text)].rstrip('-')}{suffix_text}"
+        suffix += 1
+
     new_org = Organization(
-        name=user_data.organization_name,
-        slug=user_data.organization_slug,
+        name=organization_name,
+        slug=organization_slug,
     )
     db.add(new_org)
     await db.flush()

@@ -19,7 +19,6 @@ const RegisterPage: React.FC = () => {
     password: '',
     full_name: '',
     organization_name: '',
-    organization_slug: '',
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -101,23 +100,13 @@ const RegisterPage: React.FC = () => {
             />
             <TextField
               margin="normal"
-              required
               fullWidth
               id="organization_name"
               label="Nome da Organização"
               name="organization_name"
               value={formData.organization_name}
               onChange={handleChange}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="organization_slug"
-              label="Slug da Organização (sem espaços)"
-              name="organization_slug"
-              value={formData.organization_slug}
-              onChange={handleChange}
+              helperText="Opcional. Se não informar, usaremos “Organização de [seu nome]”."
             />
             <Button
               type="submit"

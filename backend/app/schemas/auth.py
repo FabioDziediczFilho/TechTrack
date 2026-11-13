@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class UserBase(BaseModel):
@@ -10,8 +10,14 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
-    organization_name: str = Field(..., min_length=1, max_length=255)
-    organization_slug: str = Field(..., min_length=1, max_length=100)
+    organization_name: str | None = Field(default=None, max_length=255)
+
+    @field_validator("organization_name", mode="before")
+    @classmethod
+    def empty_organization_name_is_missing(cls, value: str | None) -> str | None:
+        if isinstance(value, str):
+            return value.strip() or None
+        return value
 
 
 class UserLogin(BaseModel):

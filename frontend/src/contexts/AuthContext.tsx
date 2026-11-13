@@ -1,13 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
 import axios from 'axios'
-
-interface User {
-  id: number
-  email: string
-  full_name: string
-  role: string
-  organization_id: number
-}
+import api from '../services/api'
+import { User } from '../types'
 
 interface AuthContextType {
   user: User | null
@@ -24,8 +18,7 @@ interface RegisterData {
   email: string
   password: string
   full_name: string
-  organization_name: string
-  organization_slug: string
+  organization_name?: string
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -39,49 +32,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    try {
-      const storedAccessToken = localStorage.getItem('access_token')
-      const storedRefreshToken = localStorage.getItem('refresh_token')
-      const storedUser = localStorage.getItem('user')
+    const restoreSession = async () => {
+      try {
+        const storedAccessToken = localStorage.getItem('access_token')
+        const storedRefreshToken = localStorage.getItem('refresh_token')
+        const storedUser = localStorage.getItem('user')
 
-      if (storedAccessToken && storedRefreshToken && storedUser) {
-        const userData = JSON.parse(storedUser) as User
-        setAccessToken(storedAccessToken)
-        setRefreshToken(storedRefreshToken)
-        setUser(userData)
-      } else if (storedAccessToken && storedRefreshToken) {
-        try {
-          const payload = JSON.parse(atob(storedAccessToken.split('.')[1]))
-          const userData: User = {
-            id: parseInt(payload.sub),
-            email: payload.email,
-            full_name: 'User',
-            role: 'user',
-            organization_id: payload.organization_id,
-          }
-          setAccessToken(storedAccessToken)
-          setRefreshToken(storedRefreshToken)
-          setUser(userData)
-          localStorage.setItem('user', JSON.stringify(userData))
-        } catch (error) {
-          console.error('Error decoding JWT:', error)
+        if (!storedAccessToken || !storedRefreshToken) {
+          setAccessToken(null)
+          setRefreshToken(null)
+          setUser(null)
           localStorage.removeItem('access_token')
           localStorage.removeItem('refresh_token')
           localStorage.removeItem('user')
+          return
         }
-      } else {
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('user')
+
+        setAccessToken(storedAccessToken)
+        setRefreshToken(storedRefreshToken)
+
+        if (storedUser) {
+          setUser(JSON.parse(storedUser) as User)
+        } else {
+          const payload = JSON.parse(atob(storedAccessToken.split('.')[1]))
+          setUser({
+            id: Number(payload.sub),
+            email: payload.email,
+            full_name: 'Usuário',
+            role: 'user',
+            organization_id: payload.organization_id,
+            is_active: true,
+            created_at: '',
+          })
+        }
+
+        const response = await api.get<User>('/api/v1/auth/me', {
+          headers: { Authorization: `Bearer ${storedAccessToken}` },
+        })
+        setUser(response.data)
+        setAccessToken(localStorage.getItem('access_token') || storedAccessToken)
+        setRefreshToken(localStorage.getItem('refresh_token') || storedRefreshToken)
+        localStorage.setItem('user', JSON.stringify(response.data))
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          setAccessToken(null)
+          setRefreshToken(null)
+          setUser(null)
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('user')
+        } else {
+          console.error('Error restoring saved session:', error)
+        }
       }
-    } catch (error) {
-      console.error('Error restoring saved session:', error)
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
-      localStorage.removeItem('user')
-    } finally {
-      setIsLoading(false)
     }
+
+    void restoreSession().finally(() => setIsLoading(false))
   }, [])
 
   useEffect(() => {
@@ -99,16 +105,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     })
 
     const { access_token, refresh_token } = response.data
-
-    // Decode JWT to get user data (simplified approach)
-    const payload = JSON.parse(atob(access_token.split('.')[1]))
-    const userData: User = {
-      id: parseInt(payload.sub),
-      email: payload.email,
-      full_name: 'User', // Will be updated later if needed
-      role: 'user',
-      organization_id: payload.organization_id,
-    }
+    const profileResponse = await axios.get<User>(`${API_URL}/api/v1/auth/me`, {
+      headers: { Authorization: `Bearer ${access_token}` },
+    })
+    const userData = profileResponse.data
 
     setAccessToken(access_token)
     setRefreshToken(refresh_token)

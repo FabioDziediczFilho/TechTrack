@@ -20,6 +20,7 @@ import {
   Inventory as EquipmentIcon,
   Build as MaintenanceIcon,
   Business as DepartmentsIcon,
+  People as UsersIcon,
   Logout as LogoutIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material'
@@ -27,11 +28,12 @@ import { useAuth } from '../contexts/AuthContext'
 
 const drawerWidth = 240
 
-const menuItems = [
+const menuItems: { text: string; icon: React.ReactNode; path: string; adminOnly?: boolean }[] = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
   { text: 'Equipamentos', icon: <EquipmentIcon />, path: '/equipment' },
   { text: 'Departamentos', icon: <DepartmentsIcon />, path: '/departments' },
   { text: 'Manutenção', icon: <MaintenanceIcon />, path: '/maintenance' },
+  { text: 'Usuários', icon: <UsersIcon />, path: '/users', adminOnly: true },
 ]
 
 const Layout: React.FC = () => {
@@ -70,7 +72,7 @@ const Layout: React.FC = () => {
         </Typography>
       </Toolbar>
       <List>
-        {menuItems.map((item) => (
+        {menuItems.filter((item) => !item.adminOnly || user?.role === 'admin').map((item) => (
           <ListItem key={item.text} disablePadding>
             <ListItemButton onClick={() => handleNavigate(item.path)}>
               <ListItemIcon>{item.icon}</ListItemIcon>

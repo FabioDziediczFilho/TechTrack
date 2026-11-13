@@ -9,7 +9,6 @@ async def create_account(client: AsyncClient, slug: str) -> tuple[str, int]:
             "password": "test-password-123",
             "full_name": f"User {slug}",
             "organization_name": f"Organization {slug}",
-            "organization_slug": slug,
         },
     )
     assert registration.status_code == 201, registration.text
@@ -20,6 +19,27 @@ async def create_account(client: AsyncClient, slug: str) -> tuple[str, int]:
     )
     assert login.status_code == 200, login.text
     return login.json()["access_token"], registration.json()["id"]
+
+
+async def test_register_generates_unique_organization_slug(client: AsyncClient):
+    registration_data = {
+        "email": "same-name@example.com",
+        "password": "test-password-123",
+        "full_name": "José Silva",
+    }
+
+    first = await client.post("/api/v1/auth/register", json=registration_data)
+    assert first.status_code == 201, first.text
+
+    registration_data["email"] = "same-name-2@example.com"
+    second = await client.post("/api/v1/auth/register", json=registration_data)
+    assert second.status_code == 201, second.text
+    assert first.json()["id"] != second.json()["id"]
+
+    registration_data["email"] = "same-name-3@example.com"
+    registration_data["organization_name"] = "  "
+    third = await client.post("/api/v1/auth/register", json=registration_data)
+    assert third.status_code == 201, third.text
 
 
 async def create_equipment_type(client: AsyncClient, token: str) -> int:
