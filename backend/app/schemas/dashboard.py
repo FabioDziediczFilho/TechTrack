@@ -7,6 +7,7 @@ class DashboardStats(BaseModel):
     open_tickets: int
     closed_tickets: int
     equipment_with_issues: int
+    pending_maintenance_alerts: int
     avg_resolution_time_days: float
 
 

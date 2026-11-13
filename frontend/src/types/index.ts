@@ -112,6 +112,7 @@ export interface DashboardStats {
   open_tickets: number
   closed_tickets: number
   equipment_with_issues: number
+  pending_maintenance_alerts: number
   avg_resolution_time_days: number
 }
 

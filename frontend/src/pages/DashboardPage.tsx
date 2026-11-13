@@ -14,6 +14,7 @@ import {
   Inventory as EquipmentIcon,
   SupportAgent as TicketsIcon,
   Build as MaintenanceIcon,
+  NotificationsActive as AlertsIcon,
 } from '@mui/icons-material'
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useQuery } from '@tanstack/react-query'
@@ -101,6 +102,20 @@ const DashboardPage: React.FC = () => {
                 <Typography variant="h4">{stats?.equipment_with_issues || 0}</Typography>
                 <Typography variant="body2" color="text.secondary">
                   Equipamentos com Problemas
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <AlertsIcon sx={{ fontSize: 40, color: 'error.main' }} />
+              <Box>
+                <Typography variant="h4">{stats?.pending_maintenance_alerts || 0}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Alertas de Manutenção Pendentes
                 </Typography>
               </Box>
             </CardContent>

@@ -352,6 +352,63 @@ async def test_maintenance_uses_authenticated_user_and_checks_equipment_tenant(
     assert cross_org_alert.status_code == 404
 
 
+async def test_dashboard_counts_pending_maintenance_alerts_per_organization(
+    client: AsyncClient,
+):
+    token_a, _ = await create_account(client, "dashboard-first-org")
+    type_id = await create_equipment_type(client, token_a)
+    equipment_a = await create_equipment(client, token_a, type_id)
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+
+    pending_alert = await client.post(
+        "/api/v1/maintenance/alerts",
+        headers=headers_a,
+        json={
+            "equipment_id": equipment_a["id"],
+            "alert_date": "2026-12-01T00:00:00",
+        },
+    )
+    assert pending_alert.status_code == 201, pending_alert.text
+    completed_alert = await client.post(
+        "/api/v1/maintenance/alerts",
+        headers=headers_a,
+        json={
+            "equipment_id": equipment_a["id"],
+            "alert_date": "2026-12-02T00:00:00",
+        },
+    )
+    assert completed_alert.status_code == 201, completed_alert.text
+    completed = await client.put(
+        f"/api/v1/maintenance/alerts/{completed_alert.json()['id']}",
+        headers=headers_a,
+        json={"status": "completed"},
+    )
+    assert completed.status_code == 200, completed.text
+
+    token_b, _ = await create_account(client, "dashboard-second-org")
+    equipment_b = await create_equipment(client, token_b, type_id)
+    pending_alert_b = await client.post(
+        "/api/v1/maintenance/alerts",
+        headers={"Authorization": f"Bearer {token_b}"},
+        json={
+            "equipment_id": equipment_b["id"],
+            "alert_date": "2026-12-03T00:00:00",
+        },
+    )
+    assert pending_alert_b.status_code == 201, pending_alert_b.text
+
+    response_a = await client.get("/api/v1/dashboard/stats", headers=headers_a)
+    response_b = await client.get(
+        "/api/v1/dashboard/stats",
+        headers={"Authorization": f"Bearer {token_b}"},
+    )
+
+    assert response_a.status_code == 200, response_a.text
+    assert response_a.json()["pending_maintenance_alerts"] == 1
+    assert response_b.status_code == 200, response_b.text
+    assert response_b.json()["pending_maintenance_alerts"] == 1
+
+
 async def test_sector_can_be_edited_and_is_organization_scoped(client: AsyncClient):
     token, _ = await create_account(client, "sector-edit-org")
     response = await client.post(

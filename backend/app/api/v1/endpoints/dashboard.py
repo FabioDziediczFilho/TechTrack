@@ -5,7 +5,7 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_organization, get_db
-from app.models import Equipment, EquipmentTypeModel, Ticket
+from app.models import Equipment, EquipmentTypeModel, MaintenanceAlert, Ticket
 from app.schemas.dashboard import (
     DashboardStats,
     EquipmentByType,
@@ -65,6 +65,16 @@ async def get_dashboard_stats(
     )
     equipment_with_issues = result.scalar() or 0
 
+    result = await db.execute(
+        select(func.count(MaintenanceAlert.id))
+        .join(Equipment, MaintenanceAlert.equipment_id == Equipment.id)
+        .where(
+            Equipment.organization_id == current_org_id,
+            MaintenanceAlert.status == "pending",
+        )
+    )
+    pending_maintenance_alerts = result.scalar() or 0
+
     # Average resolution time (days)
     result = await db.execute(
         select(Ticket.created_at, Ticket.closed_at).where(
@@ -93,6 +103,7 @@ async def get_dashboard_stats(
         open_tickets=open_tickets,
         closed_tickets=closed_tickets,
         equipment_with_issues=equipment_with_issues,
+        pending_maintenance_alerts=pending_maintenance_alerts,
         avg_resolution_time_days=avg_resolution_time_days,
     )
 
