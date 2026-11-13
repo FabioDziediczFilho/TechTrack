@@ -2,14 +2,13 @@ import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Box,
-  Container,
-  Paper,
   TextField,
   Button,
   Typography,
   Alert,
 } from '@mui/material'
 import { useAuth } from '../contexts/AuthContext'
+import AuthLayout from '../components/AuthLayout'
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate()
@@ -35,66 +34,54 @@ const LoginPage: React.FC = () => {
   }
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          width: '100%',
-          marginTop: { xs: 2, sm: 8 },
-          marginBottom: { xs: 2, sm: 8 },
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Typography component="h1" variant="h4" gutterBottom sx={{ fontSize: { xs: '1.8rem', sm: '2.125rem' } }}>
-          TechTrack
+    <AuthLayout
+      eyebrow="BEM-VINDO DE VOLTA"
+      title="Acesse seu ambiente"
+      description="Entre com seus dados para continuar de onde parou."
+    >
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <Box component="form" onSubmit={handleSubmit}>
+        <TextField
+          margin="normal"
+          required
+          fullWidth
+          id="email"
+          label="E-mail"
+          name="email"
+          autoComplete="email"
+          autoFocus
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <TextField
+          margin="normal"
+          required
+          fullWidth
+          name="password"
+          label="Senha"
+          type="password"
+          id="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <Button
+          type="submit"
+          fullWidth
+          variant="contained"
+          sx={{ mt: 3, mb: 2 }}
+          disabled={loading}
+        >
+          {loading ? 'Entrando...' : 'Entrar na plataforma'}
+        </Button>
+        <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 2 }}>
+          Ainda não tem uma conta?{' '}
+          <Link to="/register" style={{ color: '#087f79', fontWeight: 700, textDecoration: 'none' }}>
+            Criar conta
+          </Link>
         </Typography>
-        <Typography component="h2" variant="h5" gutterBottom>
-          Login
-        </Typography>
-        <Paper elevation={3} sx={{ p: { xs: 2.5, sm: 4 }, width: '100%' }}>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email"
-              name="email"
-              autoComplete="email"
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Senha"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
-            >
-              {loading ? 'Entrando...' : 'Entrar'}
-            </Button>
-            <Box sx={{ textAlign: 'center' }}>
-              <Link to="/register">Não tem uma conta? Registre-se</Link>
-            </Box>
-          </Box>
-        </Paper>
       </Box>
-    </Container>
+    </AuthLayout>
   )
 }
 
