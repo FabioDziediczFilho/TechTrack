@@ -256,6 +256,38 @@ async def test_equipment_computer_number_can_be_created_updated_and_cleared(
     assert cleared.json()["computer_number"] is None
 
 
+async def test_equipment_processor_generation_can_be_created_updated_and_cleared(
+    client: AsyncClient,
+):
+    token, _ = await create_account(client, "processor-generation-org")
+    headers = {"Authorization": f"Bearer {token}"}
+    type_id = await create_equipment_type(client, token)
+
+    created = await client.post(
+        "/api/v1/equipment/",
+        headers=headers,
+        json={"type_id": type_id, "processor_generation": "13ª geração"},
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["processor_generation"] == "13ª geração"
+
+    updated = await client.put(
+        f"/api/v1/equipment/{created.json()['id']}",
+        headers=headers,
+        json={"processor_generation": "14ª geração"},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["processor_generation"] == "14ª geração"
+
+    cleared = await client.put(
+        f"/api/v1/equipment/{created.json()['id']}",
+        headers=headers,
+        json={"processor_generation": "  "},
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["processor_generation"] is None
+
+
 async def test_deleting_equipment_removes_history_and_maintenance_but_keeps_tickets(
     client: AsyncClient,
 ):

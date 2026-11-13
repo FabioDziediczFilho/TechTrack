@@ -49,6 +49,7 @@ class EquipmentBase(BaseModel):
     brand: str | None = Field(None, max_length=100)
     model: str | None = Field(None, max_length=100)
     processor: str | None = Field(None, max_length=100)
+    processor_generation: str | None = Field(None, max_length=100)
     memory: str | None = Field(None, max_length=50)
     storage: str | None = Field(None, max_length=50)
     observation: str | None = Field(None, max_length=2000)
@@ -60,6 +61,7 @@ class EquipmentBase(BaseModel):
         "brand",
         "model",
         "processor",
+        "processor_generation",
         "memory",
         "storage",
         "observation",
@@ -84,6 +86,7 @@ class EquipmentUpdate(BaseModel):
     brand: str | None = Field(None, max_length=100)
     model: str | None = Field(None, max_length=100)
     processor: str | None = Field(None, max_length=100)
+    processor_generation: str | None = Field(None, max_length=100)
     memory: str | None = Field(None, max_length=50)
     storage: str | None = Field(None, max_length=50)
     observation: str | None = Field(None, max_length=2000)

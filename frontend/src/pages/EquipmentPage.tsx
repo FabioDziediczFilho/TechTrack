@@ -29,6 +29,7 @@ const EquipmentPage: React.FC = () => {
     brand: '',
     model: '',
     processor: '',
+    processor_generation: '',
     memory: '',
     storage: '',
     observation: '',
@@ -65,6 +66,7 @@ const EquipmentPage: React.FC = () => {
         brand: '',
         model: '',
         processor: '',
+        processor_generation: '',
         memory: '',
         storage: '',
         observation: '',
@@ -108,6 +110,7 @@ const EquipmentPage: React.FC = () => {
       brand: '',
       model: '',
       processor: '',
+      processor_generation: '',
       memory: '',
       storage: '',
       observation: '',
@@ -140,6 +143,7 @@ const EquipmentPage: React.FC = () => {
       brand: item.brand ?? '',
       model: item.model ?? '',
       processor: item.processor ?? '',
+      processor_generation: item.processor_generation ?? '',
       memory: item.memory ?? '',
       storage: item.storage ?? '',
       observation: item.observation ?? '',
@@ -177,6 +181,7 @@ const EquipmentPage: React.FC = () => {
       brand: formData.brand.trim() || null,
       model: formData.model.trim() || null,
       processor: formData.processor || null,
+      processor_generation: formData.processor_generation.trim() || null,
       memory: formData.memory || null,
       storage: formData.storage || null,
       observation: formData.observation.trim() || null,
@@ -474,6 +479,16 @@ const EquipmentPage: React.FC = () => {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
+                  name="processor_generation"
+                  label="Geração do processador"
+                  placeholder="Ex.: 13ª geração"
+                  fullWidth
+                  value={formData.processor_generation}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
                   name="memory"
                   label="Memória"
                   fullWidth
@@ -561,6 +576,10 @@ const EquipmentPage: React.FC = () => {
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Processador</Typography>
                 <Typography variant="body1">{selectedEquipment.processor || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Geração do processador</Typography>
+                <Typography variant="body1">{selectedEquipment.processor_generation || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Memória</Typography>

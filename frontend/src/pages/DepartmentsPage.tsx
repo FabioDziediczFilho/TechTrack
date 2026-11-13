@@ -453,6 +453,10 @@ const DepartmentsPage: React.FC = () => {
                 <Typography>{selectedEquipment.processor || '-'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">Geração do processador</Typography>
+                <Typography>{selectedEquipment.processor_generation || '-'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Memória</Typography>
                 <Typography>{selectedEquipment.memory || '-'}</Typography>
               </Grid>

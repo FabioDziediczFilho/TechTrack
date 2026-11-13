@@ -33,6 +33,7 @@ export interface Equipment {
   brand: string | null
   model: string | null
   processor: string | null
+  processor_generation: string | null
   memory: string | null
   storage: string | null
   observation: string | null

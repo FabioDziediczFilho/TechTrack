@@ -54,6 +54,7 @@ class Equipment(Base):
     brand: Mapped[str | None] = mapped_column(String(100), nullable=True)
     model: Mapped[str | None] = mapped_column(String(100), nullable=True)
     processor: Mapped[str] = mapped_column(String(100), nullable=True)
+    processor_generation: Mapped[str | None] = mapped_column(String(100), nullable=True)
     memory: Mapped[str] = mapped_column(String(50), nullable=True)
     storage: Mapped[str] = mapped_column(String(50), nullable=True)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
