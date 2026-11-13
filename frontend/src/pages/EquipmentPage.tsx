@@ -15,6 +15,37 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { equipmentService } from '../services/equipment'
 import { Equipment, EquipmentCreateInput } from '../types'
 
+type EquipmentFieldVisibility = {
+  computerNumber: boolean
+  brandAndModel: boolean
+  computerSpecifications: boolean
+}
+
+const getEquipmentFieldVisibility = (typeName: string | undefined): EquipmentFieldVisibility => {
+  const normalizedName = (typeName ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+  if (/\b(computador|desktop|pc)\b/.test(normalizedName)) {
+    return { computerNumber: true, brandAndModel: false, computerSpecifications: true }
+  }
+
+  if (/\b(notebook|laptop)\b/.test(normalizedName)) {
+    return { computerNumber: true, brandAndModel: true, computerSpecifications: true }
+  }
+
+  if (/\b(impressora|printer)\b/.test(normalizedName)) {
+    return { computerNumber: false, brandAndModel: true, computerSpecifications: false }
+  }
+
+  if (/\b(servidor|server)\b/.test(normalizedName)) {
+    return { computerNumber: true, brandAndModel: true, computerSpecifications: true }
+  }
+
+  return { computerNumber: true, brandAndModel: true, computerSpecifications: true }
+}
+
 const EquipmentPage: React.FC = () => {
   const isMobile = useMediaQuery('(max-width:599px)')
   const [open, setOpen] = useState(false)
@@ -47,6 +78,9 @@ const EquipmentPage: React.FC = () => {
     queryKey: ['equipment-types'],
     queryFn: equipmentService.getTypes,
   })
+
+  const selectedTypeName = types?.find((type) => type.id === Number(formData.type_id))?.name
+  const visibleFields = getEquipmentFieldVisibility(selectedTypeName)
 
   const { data: sectors } = useQuery({
     queryKey: ['sectors'],
@@ -432,15 +466,17 @@ const EquipmentPage: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  name="computer_number"
-                  label="Número do computador"
-                  fullWidth
-                  value={formData.computer_number}
-                  onChange={handleChange}
-                />
-              </Grid>
+              {visibleFields.computerNumber && (
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    name="computer_number"
+                    label="Número do computador"
+                    fullWidth
+                    value={formData.computer_number}
+                    onChange={handleChange}
+                  />
+                </Grid>
+              )}
               <Grid item xs={12} sm={6}>
                 <TextField
                   name="asset_number"
@@ -450,61 +486,69 @@ const EquipmentPage: React.FC = () => {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  name="brand"
-                  label="Marca"
-                  fullWidth
-                  value={formData.brand}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  name="model"
-                  label="Modelo"
-                  fullWidth
-                  value={formData.model}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  name="processor"
-                  label="Processador"
-                  fullWidth
-                  value={formData.processor}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  name="processor_generation"
-                  label="Geração do processador"
-                  placeholder="Ex.: 13ª geração"
-                  fullWidth
-                  value={formData.processor_generation}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  name="memory"
-                  label="Memória"
-                  fullWidth
-                  value={formData.memory}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  name="storage"
-                  label="Armazenamento"
-                  fullWidth
-                  value={formData.storage}
-                  onChange={handleChange}
-                />
-              </Grid>
+              {visibleFields.brandAndModel && (
+                <>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      name="brand"
+                      label="Marca"
+                      fullWidth
+                      value={formData.brand}
+                      onChange={handleChange}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      name="model"
+                      label="Modelo"
+                      fullWidth
+                      value={formData.model}
+                      onChange={handleChange}
+                    />
+                  </Grid>
+                </>
+              )}
+              {visibleFields.computerSpecifications && (
+                <>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      name="processor"
+                      label="Processador"
+                      fullWidth
+                      value={formData.processor}
+                      onChange={handleChange}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      name="processor_generation"
+                      label="Geração do processador"
+                      placeholder="Ex.: 13ª geração"
+                      fullWidth
+                      value={formData.processor_generation}
+                      onChange={handleChange}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      name="memory"
+                      label="Memória"
+                      fullWidth
+                      value={formData.memory}
+                      onChange={handleChange}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      name="storage"
+                      label="Armazenamento"
+                      fullWidth
+                      value={formData.storage}
+                      onChange={handleChange}
+                    />
+                  </Grid>
+                </>
+              )}
               <Grid item xs={12} sm={6}>
                 <TextField
                   name="observation"
