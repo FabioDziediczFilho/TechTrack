@@ -26,6 +26,7 @@ import {
   TextField,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from '@mui/material'
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -68,6 +69,7 @@ const getEquipmentLabel = (equipment: Equipment) =>
   [equipment.brand, equipment.model].filter(Boolean).join(' ') || 'Marca/modelo não informados'
 
 const DepartmentsPage: React.FC = () => {
+  const isMobile = useMediaQuery('(max-width:599px)')
   const [addSectorOpen, setAddSectorOpen] = useState(false)
   const [manageSectorsOpen, setManageSectorsOpen] = useState(false)
   const [editSectorOpen, setEditSectorOpen] = useState(false)
@@ -225,15 +227,27 @@ const DepartmentsPage: React.FC = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, gap: 2, flexWrap: 'wrap' }}>
-        <Typography variant="h4">Departamentos</Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button variant="outlined" onClick={() => setManageSectorsOpen(true)}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          justifyContent: 'space-between',
+          alignItems: { xs: 'stretch', sm: 'center' },
+          mb: 3,
+          gap: 1.5,
+        }}
+      >
+        <Typography variant="h4" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
+          Departamentos
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1 }}>
+          <Button variant="outlined" onClick={() => setManageSectorsOpen(true)} fullWidth={isMobile}>
             Gerenciar departamentos
           </Button>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
+            fullWidth={isMobile}
             onClick={() => {
               setSelectedSector(null)
               setSectorForm({ name: '', description: '', address: '', responsible: '' })
@@ -332,7 +346,7 @@ const DepartmentsPage: React.FC = () => {
                     <Typography variant="h6">{sectorName}</Typography>
                     <Chip label={`${items.length} equipamento(s)`} size="small" />
                   </Box>
-                  <Box sx={{ overflowX: 'auto' }}>
+                  <Box sx={{ overflowX: 'auto', display: { xs: 'none', sm: 'block' } }}>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
@@ -365,6 +379,35 @@ const DepartmentsPage: React.FC = () => {
                       </TableBody>
                     </Table>
                   </Box>
+                  <Box sx={{ display: { xs: 'grid', sm: 'none' }, gap: 1 }}>
+                    {items.map((item) => (
+                      <Paper
+                        key={item.id}
+                        variant="outlined"
+                        sx={{ p: 1.5, cursor: 'pointer' }}
+                        onClick={() => setSelectedEquipment(item)}
+                      >
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography variant="subtitle2" fontWeight={600} sx={{ overflowWrap: 'anywhere' }}>
+                              {item.asset_number || 'Sem patrimônio'}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {typeNames.get(item.type_id) ?? 'Tipo não informado'}
+                            </Typography>
+                            <Typography variant="body2" sx={{ mt: 0.5, overflowWrap: 'anywhere' }}>
+                              {getEquipmentLabel(item)}
+                            </Typography>
+                          </Box>
+                          <Chip
+                            label={getStatusLabel(item.status)}
+                            color={getStatusColor(item.status)}
+                            size="small"
+                          />
+                        </Box>
+                      </Paper>
+                    ))}
+                  </Box>
                 </CardContent>
               </Card>
             )
@@ -377,6 +420,7 @@ const DepartmentsPage: React.FC = () => {
         onClose={() => setSelectedEquipment(null)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle>Detalhes do equipamento</DialogTitle>
         <DialogContent>
@@ -436,7 +480,7 @@ const DepartmentsPage: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={addSectorOpen} onClose={() => setAddSectorOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={addSectorOpen} onClose={() => setAddSectorOpen(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
         <DialogTitle>Adicionar departamento</DialogTitle>
         <DialogContent>
           <Box component="form" id="add-department-form" onSubmit={handleSectorSubmit} sx={{ mt: 2 }}>
@@ -474,7 +518,7 @@ const DepartmentsPage: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={manageSectorsOpen} onClose={() => setManageSectorsOpen(false)} maxWidth="md" fullWidth>
+      <Dialog open={manageSectorsOpen} onClose={() => setManageSectorsOpen(false)} maxWidth="md" fullWidth fullScreen={isMobile}>
         <DialogTitle>Gerenciar departamentos</DialogTitle>
         <DialogContent>
           {deleteSectorMutation.isError && (
@@ -483,7 +527,12 @@ const DepartmentsPage: React.FC = () => {
             </Alert>
           )}
           {sectors?.length ? (
-            <TableContainer component={Paper} variant="outlined" sx={{ mt: 1 }}>
+            <>
+              <TableContainer
+                component={Paper}
+                variant="outlined"
+                sx={{ mt: 1, display: { xs: 'none', sm: 'block' } }}
+              >
               <Table>
                 <TableHead>
                   <TableRow>
@@ -523,7 +572,54 @@ const DepartmentsPage: React.FC = () => {
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+              </TableContainer>
+              <Box sx={{ display: { xs: 'grid', sm: 'none' }, gap: 1, mt: 1 }}>
+                {sectors.map((sector) => (
+                  <Card key={sector.id} variant="outlined">
+                    <CardContent sx={{ '&:last-child': { pb: 1.5 } }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography fontWeight={600} sx={{ overflowWrap: 'anywhere' }}>
+                            {sector.name}
+                          </Typography>
+                          {sector.description && (
+                            <Typography variant="body2" color="text.secondary">
+                              {sector.description}
+                            </Typography>
+                          )}
+                        </Box>
+                        <Box sx={{ display: 'flex', flexShrink: 0 }}>
+                          <Tooltip title="Editar departamento">
+                            <IconButton
+                              aria-label={`Editar departamento ${sector.name}`}
+                              onClick={() => openSectorEdit(sector)}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Excluir departamento">
+                            <IconButton
+                              aria-label={`Excluir departamento ${sector.name}`}
+                              color="error"
+                              onClick={() => handleDeleteSector(sector)}
+                              disabled={deleteSectorMutation.isPending}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, overflowWrap: 'anywhere' }}>
+                        {sector.address || 'Sem endereço'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+                        Responsável: {sector.responsible || 'Não informado'}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Box>
+            </>
           ) : (
             <Alert severity="info" sx={{ mt: 1 }}>Nenhum departamento cadastrado.</Alert>
           )}
@@ -533,7 +629,7 @@ const DepartmentsPage: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={editSectorOpen} onClose={() => setEditSectorOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={editSectorOpen} onClose={() => setEditSectorOpen(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
         <DialogTitle>Editar departamento</DialogTitle>
         <DialogContent>
           <Box component="form" id="edit-department-form" onSubmit={handleSectorSubmit} sx={{ mt: 2 }}>

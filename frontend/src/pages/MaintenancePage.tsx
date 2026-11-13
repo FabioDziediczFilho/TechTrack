@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import {
-  Box, Typography, Button, Table, TableBody, TableCell, TableContainer,
+  Box, Typography, Button, Card, CardContent, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Select, MenuItem, FormControl, InputLabel, Grid, Alert, SelectChangeEvent,
-  IconButton, Tooltip,
+  IconButton, Tooltip, useMediaQuery,
 } from '@mui/material'
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -12,6 +12,7 @@ import { equipmentService } from '../services/equipment'
 import { Maintenance, MaintenanceCreateInput, MaintenanceUpdateInput } from '../types'
 
 const MaintenancePage: React.FC = () => {
+  const isMobile = useMediaQuery('(max-width:599px)')
   const [open, setOpen] = useState(false)
   const [editingMaintenance, setEditingMaintenance] = useState<Maintenance | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -155,16 +156,28 @@ const MaintenancePage: React.FC = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Manutenção</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpen}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          justifyContent: 'space-between',
+          alignItems: { xs: 'stretch', sm: 'center' },
+          gap: 1.5,
+          mb: 3,
+        }}
+      >
+        <Typography variant="h4" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
+          Manutenção
+        </Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpen} fullWidth={isMobile}>
           Registrar Manutenção
         </Button>
       </Box>
 
-      <TableContainer component={Paper}>
-        {deleteError && <Alert severity="error">{`Erro ao excluir manutenção: ${deleteError}`}</Alert>}
-        <Table>
+      {deleteError && <Alert severity="error" sx={{ mb: 2 }}>{`Erro ao excluir manutenção: ${deleteError}`}</Alert>}
+
+      <TableContainer component={Paper} sx={{ display: { xs: 'none', sm: 'block' } }}>
+        <Table sx={{ minWidth: 720 }}>
           <TableHead>
             <TableRow>
               <TableCell>Equipamento</TableCell>
@@ -218,7 +231,66 @@ const MaintenancePage: React.FC = () => {
         </Table>
       </TableContainer>
 
-      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+      <Box sx={{ display: { xs: 'grid', sm: 'none' }, gap: 1.5 }}>
+        {maintenance?.map((item) => {
+          const device = equipment?.find((entry) => entry.id === item.equipment_id)
+          const equipmentLabel = device
+            ? `${device.asset_number || 'Sem patrimônio'} — ${[device.brand, device.model].filter(Boolean).join(' ') || 'Marca/modelo não informados'}`
+            : `Equipamento #${item.equipment_id}`
+          const typeLabel =
+            types?.find((type) => type.id === item.maintenance_type_id)?.name ?? `Tipo #${item.maintenance_type_id}`
+
+          return (
+            <Card key={item.id} variant="outlined">
+              <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+                <Typography variant="subtitle1" fontWeight={600} sx={{ overflowWrap: 'anywhere' }}>
+                  {equipmentLabel}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {typeLabel} · {new Date(item.performed_at).toLocaleDateString('pt-BR')}
+                </Typography>
+                {item.description && (
+                  <Typography variant="body2" sx={{ mt: 1, overflowWrap: 'anywhere' }}>
+                    {item.description}
+                  </Typography>
+                )}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {item.cost === null ? 'Sem custo informado' : `R$ ${item.cost}`}
+                  </Typography>
+                  <Box>
+                    <Tooltip title="Editar manutenção">
+                      <IconButton
+                        aria-label={`Editar manutenção ${item.id}`}
+                        onClick={() => handleEdit(item)}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Excluir manutenção">
+                      <IconButton
+                        aria-label={`Excluir manutenção ${item.id}`}
+                        color="error"
+                        onClick={() => handleDelete(item)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          )
+        })}
+        {maintenance?.length === 0 && (
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Typography>Nenhuma manutenção registrada</Typography>
+          </Paper>
+        )}
+      </Box>
+
+      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth fullScreen={isMobile}>
         <DialogTitle>{editingMaintenance ? 'Editar Manutenção' : 'Registrar Manutenção'}</DialogTitle>
         <DialogContent>
           <Box component="form" id="maintenance-form" onSubmit={handleSubmit} sx={{ mt: 2 }}>

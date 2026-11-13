@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import {
-  Box, Typography, Button, Table, TableBody, TableCell, TableContainer,
+  Box, Typography, Button, Card, CardContent, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Select, MenuItem, FormControl, InputLabel, Chip, Grid, Alert, IconButton, SelectChangeEvent,
+  useMediaQuery,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -15,6 +16,7 @@ import { equipmentService } from '../services/equipment'
 import { Equipment, EquipmentCreateInput } from '../types'
 
 const EquipmentPage: React.FC = () => {
+  const isMobile = useMediaQuery('(max-width:599px)')
   const [open, setOpen] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null)
@@ -218,20 +220,32 @@ const EquipmentPage: React.FC = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Equipamentos</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpen}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          justifyContent: 'space-between',
+          alignItems: { xs: 'stretch', sm: 'center' },
+          gap: 1.5,
+          mb: 3,
+        }}
+      >
+        <Typography variant="h4" sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
+          Equipamentos
+        </Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpen} fullWidth={isMobile}>
           Novo Equipamento
         </Button>
       </Box>
 
-      <TableContainer component={Paper}>
-        {deleteMutation.isError && (
-          <Alert severity="error" sx={{ m: 2 }}>
-            Erro ao excluir equipamento: {deleteMutation.error.message}
-          </Alert>
-        )}
-        <Table>
+      {deleteMutation.isError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Erro ao excluir equipamento: {deleteMutation.error.message}
+        </Alert>
+      )}
+
+      <TableContainer component={Paper} sx={{ display: { xs: 'none', sm: 'block' } }}>
+        <Table sx={{ minWidth: 760 }}>
           <TableHead>
             <TableRow>
               <TableCell>Número Patrimônio</TableCell>
@@ -293,8 +307,75 @@ const EquipmentPage: React.FC = () => {
         </Table>
       </TableContainer>
 
+      <Box sx={{ display: { xs: 'grid', sm: 'none' }, gap: 1.5 }}>
+        {equipment?.map((item) => (
+          <Card
+            key={item.id}
+            variant="outlined"
+            sx={{ cursor: 'pointer' }}
+            onClick={() => handleViewDetails(item)}
+          >
+            <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ overflowWrap: 'anywhere' }}>
+                    {item.asset_number || `Equipamento #${item.id}`}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {[item.brand, item.model].filter(Boolean).join(' ') || 'Marca/modelo não informados'}
+                  </Typography>
+                </Box>
+                <Chip
+                  label={getStatusLabel(item.status)}
+                  color={getStatusColor(item.status) as any}
+                  size="small"
+                />
+              </Box>
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                Setor: {sectors?.find((sector) => sector.id === item.sector_id)?.name || 'Sem setor'}
+              </Typography>
+              {item.observation && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, overflowWrap: 'anywhere' }}>
+                  {item.observation}
+                </Typography>
+              )}
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                <IconButton
+                  size="small"
+                  aria-label={`Ver equipamento ${item.asset_number || item.id}`}
+                  onClick={(event) => { event.stopPropagation(); handleViewDetails(item) }}
+                >
+                  <ViewIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  aria-label={`Editar equipamento ${item.asset_number || item.id}`}
+                  onClick={(event) => { event.stopPropagation(); handleEdit(item) }}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  color="error"
+                  aria-label={`Excluir equipamento ${item.asset_number || item.id}`}
+                  onClick={(event) => { event.stopPropagation(); handleDelete(item) }}
+                  disabled={deleteMutation.isPending}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            </CardContent>
+          </Card>
+        ))}
+        {equipment?.length === 0 && (
+          <Paper sx={{ p: 2, textAlign: 'center' }}>
+            <Typography>Nenhum equipamento cadastrado</Typography>
+          </Paper>
+        )}
+      </Box>
+
       {/* Create Dialog */}
-      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth fullScreen={isMobile}>
         <DialogTitle>{editingEquipment ? 'Editar Equipamento' : 'Novo Equipamento'}</DialogTitle>
         <DialogContent>
           <Box component="form" id="equipment-form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
@@ -438,7 +519,7 @@ const EquipmentPage: React.FC = () => {
       </Dialog>
 
       {/* Details Dialog */}
-      <Dialog open={detailsOpen} onClose={handleDetailsClose} maxWidth="md" fullWidth>
+      <Dialog open={detailsOpen} onClose={handleDetailsClose} maxWidth="md" fullWidth fullScreen={isMobile}>
         <DialogTitle>Detalhes do Equipamento</DialogTitle>
         <DialogContent>
           {selectedEquipment && (

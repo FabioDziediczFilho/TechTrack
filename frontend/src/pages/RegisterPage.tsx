@@ -47,19 +47,21 @@ const RegisterPage: React.FC = () => {
     <Container component="main" maxWidth="xs">
       <Box
         sx={{
-          marginTop: 4,
+          width: '100%',
+          marginTop: { xs: 2, sm: 4 },
+          marginBottom: { xs: 2, sm: 4 },
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
         }}
       >
-        <Typography component="h1" variant="h4" gutterBottom>
+        <Typography component="h1" variant="h4" gutterBottom sx={{ fontSize: { xs: '1.8rem', sm: '2.125rem' } }}>
           TechTrack
         </Typography>
         <Typography component="h2" variant="h5" gutterBottom>
           Registro
         </Typography>
-        <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
+        <Paper elevation={3} sx={{ p: { xs: 2.5, sm: 4 }, width: '100%' }}>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
             <TextField

@@ -43,8 +43,14 @@ const Layout: React.FC = () => {
     setMobileOpen(!mobileOpen)
   }
 
+  const handleNavigate = (path: string) => {
+    navigate(path)
+    setMobileOpen(false)
+  }
+
   const handleLogout = async () => {
     await logout()
+    setMobileOpen(false)
     navigate('/login')
   }
 
@@ -66,7 +72,7 @@ const Layout: React.FC = () => {
       <List>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton onClick={() => navigate(item.path)}>
+            <ListItemButton onClick={() => handleNavigate(item.path)}>
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
             </ListItemButton>
@@ -89,8 +95,8 @@ const Layout: React.FC = () => {
       <AppBar
         position="fixed"
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          ml: { md: `${drawerWidth}px` },
         }}
       >
         <Toolbar>
@@ -106,17 +112,26 @@ const Layout: React.FC = () => {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             TechTrack
           </Typography>
-          <Typography variant="body2">{user?.full_name || 'Usuário'}</Typography>
+          <Typography
+            variant="body2"
+            noWrap
+            sx={{
+              display: { xs: 'none', sm: 'block' },
+              maxWidth: { sm: 160, md: 240 },
+            }}
+          >
+            {user?.full_name || 'Usuário'}
+          </Typography>
         </Toolbar>
       </AppBar>
-      <Box component="nav" sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}>
+      <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{ keepMounted: true }}
           sx={{
-            display: { xs: 'block', sm: 'none' },
+            display: { xs: 'block', md: 'none' },
             '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
           }}
         >
@@ -125,7 +140,7 @@ const Layout: React.FC = () => {
         <Drawer
           variant="permanent"
           sx={{
-            display: { xs: 'none', sm: 'block' },
+            display: { xs: 'none', md: 'block' },
             '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
           }}
           open
@@ -137,12 +152,14 @@ const Layout: React.FC = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          minWidth: 0,
+          overflowX: 'hidden',
+          p: { xs: 1.5, sm: 2, md: 3 },
+          width: { md: `calc(100% - ${drawerWidth}px)` },
         }}
       >
         <Toolbar />
-        <Container maxWidth="lg">
+        <Container maxWidth="lg" disableGutters>
           <Outlet />
         </Container>
       </Box>
