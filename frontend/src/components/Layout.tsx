@@ -1,5 +1,4 @@
-import React, { useEffect } from 'react'
-import { Suspense } from 'react'
+import React, { Suspense, useEffect } from 'react'
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   AppBar,
